@@ -49,76 +49,78 @@ Category Functions
 	red/category/related_tags - Get the related tags for a category.
 
 Releases Functions
-   fred-releases 
-	fred/releases - Get all releases of economic data.
+   fred-releases
+      fred/releases - Get all releases of economic data.
    fred-releases-dates
-	red/releases/dates - Get release dates for all releases of economic data.
+      red/releases/dates - Get release dates for all releases of economic data.
    fred-release
-	fred/release - Get a release of economic data.
+      fred/release - Get a release of economic data.
    fred-release-dates
-	fred/release/dates - Get release dates for a release of economic data.
+      fred/release/dates - Get release dates for a release of economic data.
    fred-release-series
-	fred/release/series - Get the series on a release of economic data.
+      fred/release/series - Get the series on a release of economic data.
    fred-release-sources
-	fred/release/sources - Get the sources for a release of economic data.
+      fred/release/sources - Get the sources for a release of economic data.
    fred-release-tags
-	fred/release/tags - Get the tags for a release.
+      red/release/tags - Get the tags for a release.
    fred-release-related-tags
-	fred/release/related_tags - Get the related tags for a release.
+      fred/release/related_tags - Get the related tags for a release.
 
 Series Functions
    fred-series
-	fred/series
-	Get an economic data series.
+      fred/series
+      Get an economic data series.
    fred-series-categories
-	fred/series/categories
-	Get the categories for an economic data series.
+      fred/series/categories
+      Get the categories for an economic data series.
    fred-series-observations
-	fred/series/observations
-	Get the observations or data values for an economic data series.
+      fred/series/observations
+      Get the observations or data values for an economic data series.
    fred-series-release
-	fred/series/release
-	Get the release for an economic data series.
+      fred/series/release
+      Get the release for an economic data series.
    fred-series-search
-	red/series/search
-	Get economic data series that match keywords.
+      red/series/search
+      Get economic data series that match keywords.
    fred-series-search-tags
-	red/series/search/tags
-	Get the tags for a series search.
+      red/series/search/tags
+      Get the tags for a series search.
    fred-series-search-related-tags
-	fred/series/search/related_tags
-	Get the related tags for a series search.
+      fred/series/search/related_tags
+      Get the related tags for a series search.
    fred-series-tags 
-	fred/series/tags
-	Get the tags for an economic data series.
+      fred/series/tags
+      Get the tags for an economic data series.
    fred-series-updates
-	fred/series/updates
-	Get economic data series sorted by when observations were updated on the FRED® server.
+      fred/series/updates
+      Get economic data series sorted by when observations were updated on the FRED®
+      server.
    fred-series-vintagedates
-	fred/series/vintagedates
-	Get the dates in history when a series' data values were revised or new data values were released.
+      fred/series/vintagedates
+      Get the dates in history when a series' data values were revised or new data values 
+      were released.
 
 Source Functions
    fred-sources
-	red/sources
-	Get all sources of economic data.
+      red/sources
+      Get all sources of economic data.
    fred-source
-	fred/source
-	Get a source of economic data.
+      fred/source
+      Get a source of economic data.
    fred-sourece-releases
-	red/source/releases
-	Get the releases for a source.
+      red/source/releases
+      Get the releases for a source.
 
 Tag Functions
    fred-tags
-	fred/tags
-	Get all tags, search for tags, or get tags by name.
+      fred/tags
+      Get all tags, search for tags, or get tags by name.
    fred-related-tags
-	red/related_tags
-	Get the related tags for one or more tags.
+      fred/related_tags
+      Get the related tags for one or more tags.
    fred-tags-series
-	red/tags/series 
-	Get the series matching tags.
+      fred/tags/series 
+      Get the series matching tags.
 
 These functions return either a list or a list of lists, depending on the nature of the function. The lowest level list that is returned contains the set of values returned by the FRED® query in a pre-defined order that can easily be determined from the code. See the various parse-… functions for details on what is returned or look at how
 these low-level calls are used by the class-oriented interface that is documented below.
