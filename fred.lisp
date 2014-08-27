@@ -202,7 +202,7 @@ correct functioning of this code although obviously some newly available informa
   (setf *fred-api-key* (or api-key
                            (and (probe-file "~/API_Key.txt")
                                 (with-open-file (f "~/API_Key.txt")
-                                  (string (read f)))))))
+                                  (string-downcase (string (read f))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Object location methods
