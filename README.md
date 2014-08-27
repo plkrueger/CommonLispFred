@@ -11,7 +11,7 @@ The files fred-package.lisp, fred-classes.lisp, and fred.lisp together implement
 
 Requirements
 
-This has been tested using the latest development version of the Closure Common Lisp distribution (Version 1.10-dev-r16162-trunk  for DarwinX8664 as of this writing). Although I have attempted to make this compatible with other distributions, it is always possible that some problem might arise. If you find one, file a GIT ticket and I’ll attempt to resolve it.
+This has been tested using the latest development version of the Clozure Common Lisp distribution (CCL Version 1.10-dev-r16162-trunk  for DarwinX8664 as of this writing). Although I have attempted to make this compatible with other distributions, it is always possible that some problem might arise. If you find one, file a GIT ticket and I’ll attempt to resolve it.
 
 This package uses quicklisp to load both the s-xml and drakma open source packages. You must install quicklisp on your system before loading this code.
 
