@@ -102,13 +102,13 @@ correct functioning of this code although obviously some newly available informa
   ;; the date range represented by the array.
   (case freq-key
     (:annual
-     (truncate (date-diff dt start-dt :year)))
+     (truncate (-dates dt start-dt :year)))
     (:quarterly
-     (truncate (date-diff dt start-dt :quarter)))
+     (truncate (-dates dt start-dt :quarter)))
     (:monthly
-     (truncate (date-diff dt start-dt :month)))
+     (truncate (-dates dt start-dt :month)))
     (:weekly
-     (truncate (date-diff dt start-dt :week)))))
+     (truncate (-dates dt start-dt :week)))))
 
 (defun period-dates (dt freq-key)
   ;; all period dates encoded as 00:00 AM on the first date of the period
@@ -120,26 +120,26 @@ correct functioning of this code although obviously some newly available informa
     (case freq-key
       (:annual
        (let ((current-dt (hist-date yr 01 01)))
-         (values (inc-date current-dt -1 :year)
+         (values (years- current-dt)
                  current-dt
-                 (inc-date current-dt 1 :year))))
+                 (years+ current-dt))))
       (:quarterly
        (let* ((quarter-indx (floor (1- mm) 3))
               (current-dt (hist-date yr (1+ (* 3 quarter-indx)) 01)))
-         (values (inc-date current-dt -1 :quarter)
+         (values (date- current-dt 1 :quarter)
                  current-dt
-                 (inc-date current-dt 1 :quarter))))
+                 (date+ current-dt 1 :quarter))))
       (:monthly
        (let ((current-dt (hist-date yr mm 01)))
-         (values (inc-date current-dt -1 :month)
+         (values (months- current-dt)
                  current-dt
-                 (inc-date current-dt 1 :month))))
+                 (months+ current-dt))))
       (:weekly ;; means week ending on Saturday by default
-       (let* ((prior-days (days-from :sat (day-of-wk dt)))
-              (current-dt (inc-days (hist-date yr mm dd) (- prior-days))))
-         (values (inc-date current-dt -1 :week)
+       (let* ((prior-days (day-span :sat (day-of-wk dt)))
+              (current-dt (days- (hist-date yr mm dd) prior-days)))
+         (values (date- current-dt 1 :week)
                  current-dt
-                 (inc-date current-dt 1 :week)))))))
+                 (date+ current-dt 1 :week)))))))
 
 (defun remove-lf-strs (xml-form)
   (let* ((lf-str (make-string 1 :initial-element #\lf))
@@ -547,12 +547,12 @@ correct functioning of this code although obviously some newly available informa
           (:prior
            prior-val)
           (:closest
-           (if (< (- obs-date current-period-dt) (- next-period-dt obs-date))
+           (if (< (-days obs-date current-period-dt) (-days next-period-dt obs-date))
              prior-val
              current-val))
           (:avg ;; interpolate based on the fraction of the period until obs-date
            (+ prior-val (* (- current-val prior-val)
-                           (/ (- obs-date current-period-dt) (- next-period-dt current-period-dt))))))))))
+                           (/ (-days obs-date current-period-dt) (-days next-period-dt current-period-dt))))))))))
 
 ;; fred-data-release
 
@@ -792,7 +792,7 @@ what we get from FRED we will just remove those strings.
     (string
      dt)
     (integer
-     (intl-date-string dt))
+     (string-intl-date dt))
     (t
      (error "~s is not a valid date argument" dt))))
 
@@ -1939,6 +1939,7 @@ what we get from FRED we will just remove those strings.
 ;; Test Functions
 
 #|
+
 (in-package :fred)
 
 (setf cat0 (make-instance 'fred-data-category :id "0"))
@@ -1946,8 +1947,8 @@ what we get from FRED we will just remove those strings.
 (cat-children cat0)
 (setf academic-data-cat (find-category "33060"))
 (setf ad-series (first (cat-series academic-data-cat)))
-(date-string (series-start-dt ad-series))
-(date-string (series-end-dt ad-series))
+(string-date (series-start-dt ad-series))
+(string-date (series-end-dt ad-series))
 (series-observations ad-series)
 (setf raw-obs (mapcar #'(lambda (tuple)
                           (list (fred-date-string (first tuple))

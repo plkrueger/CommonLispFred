@@ -60,61 +60,59 @@ that is possible (i.e. for dates after Jan 1, 1900).
    intl-string-to-date
 
    ;;; Decoding hist-dates
-   abbrev-day-of-wk
-   date-list
    day-of-wk
-   dt-yr
+   dt-year
    hist-date-day
    hist-date-hr-min-sec
    hist-date-time-secs
    hist-date-yr-month-day
    hist-day-yr-month-day
-   mmddyy-list
+   make-date-list
+   mmddyr-list
+   short-day-of-wk
 
    ;;; Converting hist-dates to/from common lisp dates
    hist-date-to-lisp-date
    lisp-date-to-hist-date
 
    ;;; Constructing commonly used hist-dates
-   last-dt-of-month
-   next-day
-   next-month
-   next-year
-   now
-   prev-day
-   prev-month
-   prev-year
+   end-of-month
+   time-now
    todays-date
 
    ;;; Computing with hist-dates
-   date-diff
-   days-diff
-   days-from
-   inc-date
-   inc-days
-   inc-months
-   inc-years
-   months-diff
+   -dates
+   -days
+   -months
+   -years
+   day-span
+   date+
+   date-
+   days+
+   days-
+   months+
+   months-
+   years+
+   years-
    same-day-p
-   years-diff
-   +days
 
    ;;; Iterators for hist-dates
-   do-dates
-   do-interval-dates
-   do-months
+   do-for-dates
+   do-for-interval-dates
+   do-for-months
 
    ;;; Formatting hist-dates as strings
-   date-string
-   day-of-wk-abbrev-string
-   day-of-wk-string
-   intl-date-string
-   mmdd-string
-   mmyy-string
-   short-date-string
-   short-time-string
-   time-string
-   yr-string))
+   string-date
+   string-date-short
+   string-date-time
+   string-date-time-short
+   string-day-of-wk
+   string-day-of-wk-short
+   string-intl-date
+   string-mmdd
+   string-mmyy
+   string-time
+   string-yr))
 
 (in-package :hist-date)
 
@@ -193,22 +191,22 @@ that is possible (i.e. for dates after Jan 1, 1900).
   (nth (mod (hist-date-day dt) 7) 
        '(:wednesday :thursday :friday :saturday :sunday :monday :tuesday )))
 
-(defun abbrev-day-of-wk (dt)
+(defun short-day-of-wk (dt)
   (nth (mod (hist-date-day dt) 7) 
        '(:wed :thu :fri :sat :sun :mon :tue)))
 
-(defun dt-yr (dt)
+(defun dt-year (dt)
   (multiple-value-bind (yr mm dd)
                        (hist-date-yr-month-day dt)
     (declare (ignore mm dd))
       yr))
 
-(defun date-list (strt end)
+(defun make-date-list (strt end)
   (do* ((res (list strt) (cons next res))
-        (next (next-day strt) (next-day next)))
+        (next (days+ strt) (days+ next)))
        ((> next end) (nreverse res))))
 
-(defun mmddyy-list (dt)
+(defun mmddyr-list (dt)
   (multiple-value-bind (yr mm dd)
                        (hist-date-yr-month-day dt)
     (list mm dd yr)))
@@ -231,7 +229,7 @@ that is possible (i.e. for dates after Jan 1, 1900).
 
 ;;; Constructing commonly used hist-dates (some relative to other dates)
 
-(defun now ()
+(defun time-now ()
   (multiple-value-bind (sec min hr dd mm yr day dst zone)
                        (decode-universal-time (get-universal-time))
     (declare (ignore day dst zone))
@@ -244,35 +242,17 @@ that is possible (i.e. for dates after Jan 1, 1900).
     (declare (ignore sec min hr day dst zone))
     (hist-date yr mm dd)))
 
-(defun next-day (dt)
-  ;; same time on next day
-  (+ 131072 dt))
-
-(defun prev-day (dt)
-  ;; same time on previous day
-  (- dt 131072))
-
-(defun next-month (dt)
-  (inc-months dt 1))
-                           
-(defun prev-month (dt)
-  (inc-months dt -1))
-
-(defun next-year (dt)
-  (inc-years dt 1))
-  
-(defun prev-year (dt)
-  (inc-years dt -1))
-
-(defun last-dt-of-month (mm yy)
+(defun end-of-month (mm yy)
   (hist-date yy mm 31))
 
 ;;; Computing with hist-dates
 
-(defun inc-days (dt num-dd)
+(defun days+ (dt &optional (num-dd 1))
+  ;; increment by days, 1 is default
   (+ (* 131072 num-dd) dt))
 
-(defun inc-months (dt num-mm)
+(defun months+ (dt &optional (num-mm 1))
+  ;; increment by months, 1 is default
   ;; Note that hist-date will always return a legal date by reducing
   ;; the dd arg to the max allowable for the month.
   (multiple-value-bind (yr mm dd)
@@ -282,36 +262,56 @@ that is possible (i.e. for dates after Jan 1, 1900).
       (+ (hist-date-time-secs dt)
          (hist-date (+ yr yy-inc) (1+ new-mm) dd)))))
 
-(defun inc-years (dt num-yy)
+(defun years+ (dt &optional (num-yy 1))
+  ;; increment by years, 1 is default
   (multiple-value-bind (yr mm dd)
                        (hist-date-yr-month-day dt)
     (+ (hist-date-time-secs dt)
        (hist-date (+ yr num-yy) mm dd))))
 
-(defun inc-date (dt num interval-type)
+(defun date+ (dt num interval-type)
+  ;; increment by specified interval, 1 is default increment
   ;; interval-type should be one of :day :month :quarter :year
   (case interval-type
-    (:day (inc-days dt num))
-    (:week (inc-days dt (* 7 num)))
-    (:month (inc-months dt num))
-    (:quarter (inc-months dt (* 3 num)))
-    (:year (inc-years dt num))))
+    (:day (days+ dt num))
+    (:week (days+ dt (* 7 num)))
+    (:month (months+ dt num))
+    (:quarter (months+ dt (* 3 num)))
+    (:year (years+ dt num))))
 
-(defun date-diff (dt1 dt2 &optional (interval-type :day))
+(defun days- (dt &optional (num-dd 1))
+  ;; decrement by days, 1 is default
+  (days+ dt (- num-dd)))
+
+(defun months- (dt &optional (num-mm 1))
+  ;; decrement by months, 1 is default
+  ;; Note that hist-date will always return a legal date by reducing
+  ;; the dd arg to the max allowable for the month.
+  (months+ dt (- num-mm)))
+
+(defun years- (dt &optional (num-yy 1))
+  ;; decrement by years, 1 is default
+  (years+ dt (- num-yy)))
+
+(defun date- (dt num interval-type)
+  ;; interval-type should be one of :day :month :quarter :year
+ (date+ dt (- num) interval-type))
+
+(defun -dates (dt1 dt2 &optional (interval-type :day))
   ;; Returns a fractional representation of the difference between the two dates
   ;; ignoring the time of day. If you want to ignore fractions you should call
   ;; truncate on the result which works as desired for negative values as well.
   (case interval-type
-    (:day (days-diff dt1 dt2))
-    (:week (/ (days-diff dt1 dt2) 7))
-    (:month (months-diff dt1 dt2))
-    (:quarter (/ (months-diff dt1 dt2) 3))
-    (:year (years-diff dt1 dt2))))
+    (:day (-days dt1 dt2))
+    (:week (/ (-days dt1 dt2) 7))
+    (:month (-months dt1 dt2))
+    (:quarter (/ (-months dt1 dt2) 3))
+    (:year (-years dt1 dt2))))
 
-(defun days-diff (dt1 dt2)
+(defun -days (dt1 dt2)
   (- (hist-date-day dt1) (hist-date-day dt2)))
 
-(defun months-diff (dt1 dt2)
+(defun -months (dt1 dt2)
   ;; computes a floating point value of months where the fraction of a month is
   ;; computed using 7 days as .25 of 1 month
   ;; round the result if you want an integer
@@ -324,7 +324,7 @@ that is possible (i.e. for dates after Jan 1, 1900).
                        (hist-date-yr-month-day dt2)
       (float (+ (* 12 (- yr1 yr2)) (- mm1 mm2) (/ (- dd1 dd2) 28))))))
 
-(defun years-diff (dt1 dt2)
+(defun -years (dt1 dt2)
   ;; computes a floating point value of years where the fraction of a year is
   ;; computed treating each month as 1/12 of a year and each day as 1/365 of 1 year
   ;; round the result if you want an integer
@@ -334,13 +334,13 @@ that is possible (i.e. for dates after Jan 1, 1900).
                        (hist-date-yr-month-day dt2)
       (float (+ (- yr1 yr2) (/ (- mm1 mm2) 12) (/ (- dd1 dd2) 365))))))
 
-(defmethod days-from ((dt1 integer) (dt2 integer))
-  (days-diff dt2 dt1))
+(defmethod day-span ((dt1 integer) (dt2 integer))
+  (-days dt2 dt1))
 
-(defmethod days-from ((dt integer) (day keyword))
+(defmethod day-span ((dt integer) (day keyword))
   (let* ((abbrev-days '(:sun :mon :tue :wed :thu :fri :sat))
          (days '(:sunday :monday :tuesday :wednesday :thursday :friday :saturday))
-         (dow (abbrev-day-of-wk dt))
+         (dow (short-day-of-wk dt))
          (today (position dow abbrev-days))
          (day-pos (or (position day days)
                       (position day abbrev-days))))
@@ -348,10 +348,10 @@ that is possible (i.e. for dates after Jan 1, 1900).
       (- day-pos today)
       (- 7 (- today day-pos)))))
 
-(defmethod days-from ((day keyword) (dt integer))
+(defmethod day-span ((day keyword) (dt integer))
   (let* ((abbrev-days '(:sun :mon :tue :wed :thu :fri :sat))
          (days '(:sunday :monday :tuesday :wednesday :thursday :friday :saturday))
-         (dow (abbrev-day-of-wk dt))
+         (dow (short-day-of-wk dt))
          (day-pos (position dow abbrev-days))
          (today (or (position day days)
                     (position day abbrev-days))))
@@ -359,7 +359,7 @@ that is possible (i.e. for dates after Jan 1, 1900).
       (- day-pos today)
       (- 7 (- today day-pos)))))
 
-(defmethod days-from ((day1 keyword) (day2 keyword))
+(defmethod day-span ((day1 keyword) (day2 keyword))
   (let* ((abbrev-days '(:sun :mon :tue :wed :thu :fri :sat))
          (days '(:sunday :monday :tuesday :wednesday :thursday :friday :saturday))
          (today (or (position day1 days)
@@ -370,37 +370,34 @@ that is possible (i.e. for dates after Jan 1, 1900).
       (- day-pos today)
       (- 7 (- today day-pos)))))
 
-(defun +days (dt days)
-  (inc-days dt days))
-
 (defun same-day-p (dt1 dt2)
   (eql (hist-date-day dt1) (hist-date-day dt2)))
 
 ;;; Iterators for hist-dates
 
-(defmacro do-dates ((dt start end &optional (return-form nil ret-p)) &rest forms)
+(defmacro do-for-dates ((dt start end &optional (return-form nil ret-p)) &rest forms)
   `(do* ((,dt ,start (+ ,dt 131072)))
         ((> ,dt ,end) (if ,ret-p ,return-form (values)))
      ,@forms))
 
-(defmacro do-interval-dates ((dt start end interval &optional (return-form nil ret-p)) &rest forms)
+(defmacro do-for-interval-dates ((dt start end interval &optional (return-form nil ret-p)) &rest forms)
   ;; interval is some number of days
   `(do* ((,dt ,start (+ ,dt (* ,interval 131072))))
         ((> ,dt ,end) (if ,ret-p ,return-form (values)))
      ,@forms))
 
-(defmacro do-months ((dt start end mm-interval &optional (return-form nil ret-p)) &rest forms)
-  `(do* ((,dt ,start (inc-months ,dt ,mm-interval)))
+(defmacro do-for-months ((dt start end mm-interval &optional (return-form nil ret-p)) &rest forms)
+  `(do* ((,dt ,start (months+ ,dt ,mm-interval)))
         ((> ,dt ,end) (if ,ret-p ,return-form (values)))
      ,@forms))
 
 ;;; Formatting hist-dates as strings
 
-(defun day-of-wk-string (dt)
+(defun string-day-of-wk (dt)
   (nth (mod (hist-date-day dt) 7) 
        '("Wednesday" "Thursday" "Friday" "Saturday" "Sunday" "Monday" "Tuesday")))
 
-(defun day-of-wk-abbrev-string (dt)
+(defun string-day-of-wk-short (dt)
   (nth (mod (hist-date-day dt) 7) 
        '("Wed" "Thu" "Fri" "Sat" "Sun" "Mon" "Tue")))
 
@@ -409,49 +406,49 @@ that is possible (i.e. for dates after Jan 1, 1900).
                        (hist-date-yr-month-day dt)
     (format nil 
             "~a ~2,'0d/~2,'0d/~2,'0d" 
-            (day-of-wk-string dt)
+            (string-day-of-wk dt)
             mm dd (mod yr 100))))
 
-(defun intl-date-string (dt)
+(defun string-intl-date (dt)
   (multiple-value-bind (yr mm dd)
                        (hist-date-yr-month-day dt)
     (format nil 
             "~4,'0d-~2,'0d-~2,'0d" yr mm dd)))
 
-(defun short-date-string (dt)
+(defun string-date-short (dt)
   (multiple-value-bind (yr mm dd)
                        (hist-date-yr-month-day dt)
     (format nil 
             "~2,'0d/~2,'0d/~2,'0d" mm dd (mod yr 100))))
 
-(defun short-time-string (dt)
+(defun string-date-time-short (dt)
   (multiple-value-bind (hr min sec)
                        (hist-date-hr-min-sec dt)
     (declare (ignore sec))
     (format nil 
             "~2,'0d:~2,'0d" hr min)))
 
-(defun time-string (dt)
+(defun string-time (dt)
   (multiple-value-bind (hr min sec)
                        (hist-date-hr-min-sec dt)
     (format nil 
             "~2,'0d:~2,'0d:~2,'0d on ~a" hr min sec (date-string dt))))
 
-(defun mmdd-string (dt)
+(defun string-mmdd (dt)
   (multiple-value-bind (yr mm dd)
                        (hist-date-yr-month-day dt)
     (declare (ignore yr))
     (format nil 
             "~2,'0d/~2,'0d" mm dd)))
 
-(defun mmyy-string (dt)
+(defun string-mmyy (dt)
   (multiple-value-bind (yr mm dd)
                        (hist-date-yr-month-day dt)
     (declare (ignore dd))
     (format nil 
             "~2,'0d/~2,'0d" mm (mod yr 100))))
 
-(defun yr-string (dt)
+(defun string-yr (dt)
   (multiple-value-bind (yr mm dd)
                        (hist-date-yr-month-day dt)
     (declare (ignore mm dd))
