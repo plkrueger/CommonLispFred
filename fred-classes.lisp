@@ -46,6 +46,15 @@ what methods must be defined for new classes.
 
 The implemenation loads data from the FRED® facility in a lazy manner, only when a user first attempts to access it.
 
+The class derived-data-series can be used to define a series with observation values that are derived in some
+manner from one or more other series. If the derivation is a simple mathematical function of values from other
+series on the same date, then those values can be generated at the time requested just by applyin the
+transform function to values from the other series on the same date. Sometimes a derived series is a function
+of observations from one or more argument series on multiple dates. For those, it is necessary to compute values
+for the whole series that can be accessed just as values for other series are accessed. An example of such a 
+derived series might be one that represents the change in values of some other series as a percentage of yet 
+another series.
+
 |#
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -98,10 +107,16 @@ The implemenation loads data from the FRED® facility in a lazy manner, only whe
                  :initarg :notes)
    (series-interpolation-method :accessor series-interpolation-method ;; one of :prior :current :avg :closest
                                 :initarg :interp)
-   (series-categories :accessor series-categories)
-   (series-release :accessor series-release)
-   (series-tags :accessor series-tags)
-   (series-observations :accessor series-observations)
+   (series-categories :accessor series-categories
+                      :initarg :categories)
+   (series-release :accessor series-release
+                   :initarg :release)
+   (series-tags :accessor series-tags
+                :initarg :tags)
+   (series-transform :accessor series-transform
+                     :initarg :transform)
+   (series-observations :accessor series-observations
+                        :initarg :observations)
    (series-max :accessor series-max
                :initform 0)
    (series-min :accessor series-min
@@ -111,20 +126,25 @@ The implemenation loads data from the FRED® facility in a lazy manner, only whe
    (series-sum :accessor series-sum
                :initform 0))
   (:default-initargs
-    :id "0"
+    :id nil
     :title nil
     :start 0
     :end 0
-    :freq :annual
-    :units "U.S. dollars"
+    :freq nil
+    :units nil
     :seas-adj nil
     :last-update 0
     :popularity 0
     :notes nil
-    :interp :current))
+    :interp :current
+    :transform :lin))
 
 (defclass fred-data-series (data-series)
-  ())
+  ()
+  (:default-initargs
+    :id "0"
+    :freq :annual
+    :units "U.S. dollars"))
 
 (defclass data-release ()
   ((release-id :accessor release-id
@@ -206,6 +226,20 @@ The implemenation loads data from the FRED® facility in a lazy manner, only whe
 
 (defclass fred-data-tag-group (data-tag-group)
   ())
+
+(defclass derived-data-series (data-series)
+  ((dds-transform-args :accessor dds-transform-args
+                       :initarg :args)
+   (dds-transform-func :accessor dds-transform-func
+                  :initarg :func)
+   (dds-transform-all :accessor dds-transform-all
+                      :initarg :all))
+  (:default-initargs
+    :func #'identity
+    :all t
+    :categories nil
+    :release nil
+    :tags nil))
 
 (provide :fred-classes)
     

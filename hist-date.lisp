@@ -90,8 +90,12 @@ that is possible (i.e. for dates after Jan 1, 1900).
    date-
    days+
    days-
+   weeks+
+   weeks-
    months+
    months-
+   quarters+
+   quarters-
    years+
    years-
    same-day-p
@@ -219,7 +223,7 @@ that is possible (i.e. for dates after Jan 1, 1900).
       (if (>= yr 1900)
           (encode-universal-time sec min hr dd mm yr)
           (error "Historical date ~a cannot be converted to a lisp date"
-                 (date-string dt))))))
+                 (string-date dt))))))
 
 (defun lisp-date-to-hist-date (ldate)
   (multiple-value-bind (sec min hr dd mm yr day dst zone)
@@ -251,6 +255,9 @@ that is possible (i.e. for dates after Jan 1, 1900).
   ;; increment by days, 1 is default
   (+ (* 131072 num-dd) dt))
 
+(defun weeks+ (dt &optional (num-wk 1))
+  (days+ dt (* 7 num-wk)))
+
 (defun months+ (dt &optional (num-mm 1))
   ;; increment by months, 1 is default
   ;; Note that hist-date will always return a legal date by reducing
@@ -261,6 +268,9 @@ that is possible (i.e. for dates after Jan 1, 1900).
                          (floor (+ num-mm mm -1) 12)
       (+ (hist-date-time-secs dt)
          (hist-date (+ yr yy-inc) (1+ new-mm) dd)))))
+
+(defun quarters+ (dt &optional (num-q 1))
+  (months+ dt (* 3 num-q)))
 
 (defun years+ (dt &optional (num-yy 1))
   ;; increment by years, 1 is default
@@ -283,11 +293,17 @@ that is possible (i.e. for dates after Jan 1, 1900).
   ;; decrement by days, 1 is default
   (days+ dt (- num-dd)))
 
+(defun weeks- (dt &optional (num-wk 1))
+  (days+ dt (* -7 num-wk)))
+
 (defun months- (dt &optional (num-mm 1))
   ;; decrement by months, 1 is default
   ;; Note that hist-date will always return a legal date by reducing
   ;; the dd arg to the max allowable for the month.
   (months+ dt (- num-mm)))
+
+(defun quarters- (dt &optional (num-q 1))
+  (months- dt (* 3 num-q)))
 
 (defun years- (dt &optional (num-yy 1))
   ;; decrement by years, 1 is default
@@ -316,7 +332,7 @@ that is possible (i.e. for dates after Jan 1, 1900).
   ;; computed using 7 days as .25 of 1 month
   ;; round the result if you want an integer
   ;; This has some use if you want to treat each month as a constant span on a graph
-  ;; or something like that. For example (months-between (hist-date 2012 2 3) (hist-date 2012 4 3))
+  ;; or something like that. For example (-months (hist-date 2012 2 3) (hist-date 2012 4 3))
   ;; will return 2.0.
   (multiple-value-bind (yr1 mm1 dd1)
                        (hist-date-yr-month-day dt1)
@@ -401,7 +417,7 @@ that is possible (i.e. for dates after Jan 1, 1900).
   (nth (mod (hist-date-day dt) 7) 
        '("Wed" "Thu" "Fri" "Sat" "Sun" "Mon" "Tue")))
 
-(defun date-string (dt)
+(defun string-date (dt)
   (multiple-value-bind (yr mm dd)
                        (hist-date-yr-month-day dt)
     (format nil 
@@ -432,7 +448,7 @@ that is possible (i.e. for dates after Jan 1, 1900).
   (multiple-value-bind (hr min sec)
                        (hist-date-hr-min-sec dt)
     (format nil 
-            "~2,'0d:~2,'0d:~2,'0d on ~a" hr min sec (date-string dt))))
+            "~2,'0d:~2,'0d:~2,'0d on ~a" hr min sec (string-date dt))))
 
 (defun string-mmdd (dt)
   (multiple-value-bind (yr mm dd)

@@ -69,17 +69,17 @@ correct functioning of this code although obviously some newly available informa
 
 (defvar *fred-api-key* nil)
 
-(defvar *all-categories* (make-hash-table :test #'equal))
+(defvar *all-categories* (make-hash-table :test #'equalp))
 
-(defvar *all-series* (make-hash-table :test #'equal))
+(defvar *all-series* (make-hash-table :test #'equalp))
 
-(defvar *all-releases* (make-hash-table :test #'equal))
+(defvar *all-releases* (make-hash-table :test #'equalp))
 
-(defvar *all-sources* (make-hash-table :test #'equal))
+(defvar *all-sources* (make-hash-table :test #'equalp))
 
-(defvar *all-tag-groups* (make-hash-table :test #'equal))
+(defvar *all-tag-groups* (make-hash-table :test #'equalp))
 
-(defvar *all-tags* (make-hash-table :test #'equal))
+(defvar *all-tags* (make-hash-table :test #'equalp))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Utility functions
@@ -155,6 +155,13 @@ correct functioning of this code although obviously some newly available informa
 (defun fred-string-to-key (fred-str)
   (intern (string-upcase fred-str) (find-package :keyword)))
 
+(defun fred-string-to-freq-key (fred-str)
+  (let* ((wrds (mapcar #'string-upcase (words fred-str ",. ")))
+         (freq-wrds (intersection wrds (list "ANNUAL" "QUARTERLY" "MONTHLY" "WEEKLY") :test #'string=)))
+    (if freq-wrds
+        (intern (first freq-wrds) (find-package :keyword))
+        :ANNUAL)))
+
 (defun fred-key-to-string (fred-key &optional (case :capitalize))
   (case case
     (:capitalize
@@ -169,7 +176,7 @@ correct functioning of this code although obviously some newly available informa
                        (period-dates obs-dt freq)
     (let ((current-indx (data-index obs-dt start-dt freq)))
       (values prior-period-dt
-              (1- current-indx)
+              (max (1- current-indx) 0)
               current-period-dt
               current-indx
               next-period-dt))))
@@ -192,6 +199,12 @@ correct functioning of this code although obviously some newly available informa
       (push (copy-seq new-str) new-sub-strs)
       (setf first-pos (+ match-start search-length)))))
 
+(defmacro nil-if-errors (&rest forms)
+  `(handler-case (progn ,@forms)
+     (error (c)
+            (declare (ignore c))
+            nil)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; FRED initialization 
 
@@ -205,25 +218,43 @@ correct functioning of this code although obviously some newly available informa
                                   (string-downcase (string (read f))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Object location methods
+;; Object location and removal methods
 
 (defun find-category (id)
   (gethash id *all-categories*))
 
-(defun find-series (id)
-  (gethash id *all-series*))
+(defun remove-category (id)
+  (remhash id *all-categories*))
+
+(defun find-series (id &optional (transform :lin))
+  (gethash (cons id transform) *all-series*))
+
+(defun remove-series (id &optional (transform :lin))
+  (remhash (cons id transform) *all-series*))
 
 (defun find-release (id)
   (gethash id *all-releases*))
 
+(defun remove-release (id)
+  (remhash id *all-releases*))
+
 (defun find-source (id)
   (gethash id *all-sources*))
+
+(defun remove-source (id)
+  (remhash id *all-sources*))
 
 (defun find-tag (name)
   (gethash name *all-tags*))
 
+(defun remove-tag (name)
+  (remhash name *all-tags*))
+
 (defun find-tag-group (id)
   (gethash id *all-tag-groups*))
+
+(defun remove-tag-group (id)
+  (remhash id *all-tag-groups*))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; class methods for non-fred-specific classes
@@ -240,7 +271,36 @@ correct functioning of this code although obviously some newly available informa
 (defmethod initialize-instance :after ((self data-series)
                                        &key
                                        &allow-other-keys)
-  (setf (gethash (series-id self) *all-series*) self))
+  (setf (gethash (cons (series-id self) (series-transform self)) *all-series*) self))
+
+
+(defmethod set-series-observations ((self data-series) obs-list)
+  (let ((num-obs (list-length obs-list)))
+    (setf (slot-value self 'series-observations)
+          (make-array (list num-obs)
+                      :adjustable t
+                      :fill-pointer t
+                      :initial-contents obs-list))
+    (setf (series-max self) (apply #'max obs-list))
+    (setf (series-min self) (apply #'min obs-list))
+    (setf (series-sum self) (apply #'+ obs-list))
+    (setf (series-avg self) (/ (series-sum self) num-obs))))
+
+(defmethod series-observation-iterator ((self data-series))
+  ;; returns an iterator function which returns the next observation date and value each time it is called
+  ;; or nil for each after the end date of the series is reached
+  (let ((next-date (series-start-dt self))
+        (next-date-interval (case (series-frequency self)
+                              (:annual :year)
+                              (:quarterly :quarter)
+                              (:monthly :month)
+                              (:weekly :week))))
+    #'(lambda ()
+        (multiple-value-prog1
+          (if (> next-date (series-end-dt self))
+              (values nil nil)
+              (values next-date (series-observation self next-date)))
+          (setf next-date (date+ next-date 1 next-date-interval))))))
 
 ;; release
 
@@ -302,7 +362,7 @@ correct functioning of this code although obviously some newly available informa
 
 (defun initialize-fred-tags ()
   ;; If you want to use tags and tag-groups as part of your application, this can be called to initialize
-  ;; all FRED® tags and tag groups. There are approximately 5,000 tags, so it will take several minutes
+  ;; all FRED® tags and tag groups. There are approximately 5,000 tags, so it will take a minute or two
   ;; for this to complete all necessary queries.
   (do* ((offset 0
                 (+ offset 1000))
@@ -428,7 +488,7 @@ correct functioning of this code although obviously some newly available informa
                                        &allow-other-keys)
   (with-slots (series-id series-title series-start-dt series-end-dt series-frequency
                          series-units series-seasonally-adj series-last-update-dt
-                         series-popularity series-notes) self
+                         series-popularity series-notes series-transform) self
     (unless series-title
       (destructuring-bind (id realtime-start realtime-end title observation-start 
                               observation-end frequency frequency-short units units-short
@@ -441,7 +501,7 @@ correct functioning of this code although obviously some newly available informa
         (setf series-start-dt observation-start)
         (setf series-end-dt observation-end)
         (setf series-frequency frequency)
-        (setf series-units units)
+        (setf series-units (concatenate 'string (transform-string series-transform) units))
         (setf series-seasonally-adj seasonal-adjustment-short)
         (setf series-last-update-dt last-updated)
         (setf series-popularity popularity)
@@ -498,22 +558,49 @@ correct functioning of this code although obviously some newly available informa
 (defmethod slot-unbound ((cl (eql (find-class 'fred-data-series)))
                          (self fred-data-series)
                          (slot (eql 'series-observations)))
-  (let* ((obs-info (fred-series-observations :series-id (series-id self)))
-         (num-obs (list-length obs-info))
+  (let* ((obs-info (fred-series-observations :series-id (series-id self)
+                                             :observation-start (series-start-dt self)
+                                             :units (series-transform self)))
          (obs-values (mapcar #'fourth obs-info)))
-    (setf (slot-value self 'series-observations) (make-array (list num-obs)
-                                                             :adjustable t
-                                                             :fill-pointer t
-                                                             :initial-contents obs-values))
-    (setf (series-max self) (apply #'max obs-values))
-    (setf (series-min self) (apply #'min obs-values))
-    (setf (series-sum self) (apply #'+ obs-values))
-    (setf (series-avg self) (/ (series-sum self) num-obs)))
+    (set-series-observations self obs-values))
    (slot-value self 'series-observations))
+
+(defmethod series-denominations ((self data-series))
+  ;; Returns a list of all currency denominations found within the series-units text.
+  ;; Returned list contains iso currency codes as keywords. See currency.lisp for codes.
+  ;; Most series units will refer to a single denomination, but some series that represent
+  ;; ratios may contain more than one.
+  (currencies-within-string (series-units self)))
+
+(defmethod series-multipliers ((self data-series))
+  ;; Returns a list of all multipliers found within the series-units text.
+  ;; Returned list contains integer multipliers as shown in code below.
+  ;; Most series units will refer to a single multiplier, but some series that represent
+  ;; ratios may contain more than one.
+  (do ((wrds (words (series-units self)))
+       (found-multipliers nil))
+      ((null wrds) (nreverse found-multipliers))
+    (let ((mult (some #'(lambda (wrd)
+                          (rest (assoc wrd 
+                                       '(("ones" . 1) ("one" . 1)
+                                         ("tens" . 10) ("ten" . 10)
+                                         ("hundreds" . 100) ("hundred" . 100)
+                                         ("thousands" . 1000) ("thousand" . 1000)
+                                         ("millions" . 1000000) ("million" . 1000000)
+                                         ("billions" . 1000000000) ("billion" . 1000000000)
+                                         ("trillions" . 1000000000000) ("trillion" . 1000000000000)
+                                         ("percent" . 100) ("percentage" . 100))
+                                       :test #'string-equal)))
+                      wrds)))
+      (when mult
+        (push mult found-multipliers))
+      (setf wrds (rest wrds)))))
+
+;; data-series
 
 (defmethod series-observation ((self data-series) obs-date)
   ;; Recall that period values are associated with the first date within the period.
-  ;; In most cases what we want to return is value that represents the period of time
+  ;; In most cases what we want to return is a value that represents the period of time
   ;; within which the obs-data resides. This would be the value that represents
   ;; the nearest prior date within the data array.
   ;; series-interpolation-method = :current
@@ -553,6 +640,41 @@ correct functioning of this code although obviously some newly available informa
           (:avg ;; interpolate based on the fraction of the period until obs-date
            (+ prior-val (* (- current-val prior-val)
                            (/ (-days obs-date current-period-dt) (-days next-period-dt current-period-dt))))))))))
+
+;; derived-data-series
+
+(defmethod initialize-instance :after ((self derived-data-series)
+                                       &key id args freq units all start end
+                                       &allow-other-keys)
+  (unless id
+    (setf (series-id self)
+          (do* ((arg-ids (mapcar #'series-id args))
+                (indx 0
+                      (1+ indx))
+                (new-id (format nil "DDS~{_~a~}" arg-ids)
+                        (format nil "DDS~{_~a~}-~s" arg-ids indx)))
+               ((not (gethash new-id *all-series*)) new-id))))
+  (unless freq
+    (setf (series-frequency self) (series-frequency (first args))))
+  (unless units
+    (setf (series-units self) (series-units (first args))))
+  (unless (plusp start)
+    (setf (series-start-dt self) (apply #'max (mapcar #'series-start-dt args))))
+  (unless (plusp end)
+    (setf (series-end-dt self) (apply #'min (mapcar #'series-end-dt args))))
+  (when (and (not (slot-boundp self 'series-observations)) all)
+    ;; transform all series observations at init time
+    ;; transform-func will be applied to all args (which are data-series) directly
+    (set-series-observations self 
+                             (apply (dds-transform-func self) 
+                                    (dds-transform-args self)))))
+
+(defmethod series-observation ((self derived-data-series) obs-date)
+  (if (and (slot-boundp self 'series-observations) (series-observations self))
+      (call-next-method self obs-date)
+      (apply (dds-transform-func self) (mapcar #'(lambda (arg)
+                                                   (series-observation arg obs-date))
+                                               (dds-transform-args self)))))
 
 ;; fred-data-release
 
@@ -735,7 +857,7 @@ correct functioning of this code although obviously some newly available informa
 ;; Query and response manipulation functions
 
 #|
-The xml parser being used wil transform:
+The xml parser being used will transform:
 
 <token>
 </token>
@@ -768,7 +890,11 @@ what we get from FRED we will just remove those strings.
     (remove-lf-strs result)))
 
 (defun fred-string-to-num (str)
-  (read-from-string str nil 0))
+  ;; It appears that fred sometimes returns "." for values if it doesn't have a number to return
+  ;; We will convert that to 0 in the absence of anything better
+  (if (string= str ".")
+      0.0
+      (read-from-string str nil 0)))
 
 (defun fred-int-string (int)
   (typecase int
@@ -812,6 +938,19 @@ what we get from FRED we will just remove those strings.
             :test #'string=)
       (error "~s is not a valid units keyword or string" units)))
 
+(defun transform-string (transform-key)
+  (or (rest (assoc transform-key
+                   '((:lin . "")
+                     (:chg . "change of ")
+                     (:ch1 . "change from previous year of ")
+                     (:pch . "% change of ")
+                     (:pc1 . "% change from previous year of ")
+                     (:pca . "compounded annual rate of change of ")
+                     (:cch . "continuously compounded rate of change of ")
+                     (:cca . "continuously compounded annual rate of change of ")
+                     (:log . "natural log of "))))
+      ""))
+           
 (defun search-type-string (stype)  
   (or (find (param-string stype) '("full_text" "series_id") :test #'string=)
       (error "~s is not a valid search-type keyword or string" stype)))
@@ -930,7 +1069,7 @@ what we get from FRED we will just remove those strings.
         (intl-string-to-date (xml-assoc :|observation_start| tag))
         (intl-string-to-date (xml-assoc :|observation_end| tag))
         (fred-string-to-key (xml-assoc :|frequency| tag))
-        (fred-string-to-key (xml-assoc :|frequency_short| tag))
+        (fred-string-to-freq-key (xml-assoc :|frequency_short| tag))
         (xml-assoc :|units| tag)
         (xml-assoc :|units_short| tag)
         (xml-assoc :|seasonal_adjustment| tag)
@@ -1934,6 +2073,150 @@ what we get from FRED we will just remove those strings.
                                              sorder-cons))))
     (values (parse-body-tags response parse-series-tag)
              (xml-form-tag response))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Search functions
+
+(defun find-or-make-series (series-id)
+  (or (find-series series-id)
+      (nil-if-errors
+       (destructuring-bind (id realtime-start realtime-end title observation-start 
+                              observation-end frequency frequency-short units units-short
+                              seasonal-adjustment seasonal-adjustment-short last-updated
+                              popularity notes)
+                           (fred-series :series-id series-id)
+         (declare (ignore realtime-start realtime-end frequency-short units-short
+                          seasonal-adjustment))
+         (make-instance 'fred-data-series
+           :id id
+           :title title
+           :start observation-start
+           :end observation-end
+           :freq frequency
+           :units units
+           :seas-adj seasonal-adjustment-short
+           :last-update last-updated
+           :popularity popularity
+           :notes notes)))))
+
+(defun search-for-series (search-term-list)
+  (let ((found-series (fred-series-search :search-text search-term-list))
+        (series-list nil))
+    (dolist (series-info found-series)
+      (destructuring-bind (id realtime-start realtime-end title observation-start 
+                              observation-end frequency frequency-short units units-short
+                              seasonal-adjustment seasonal-adjustment-short last-updated
+                              popularity notes)
+                          series-info
+        (declare (ignore realtime-start realtime-end frequency-short units-short
+                         seasonal-adjustment))
+        (push (or (find-series id)
+                  (make-instance 'fred-data-series
+                    :id id
+                    :title title
+                    :start observation-start
+                    :end observation-end
+                    :freq frequency
+                    :units units
+                    :seas-adj seasonal-adjustment-short
+                    :last-update last-updated
+                    :popularity popularity
+                    :notes notes))
+              series-list)))
+    (nreverse series-list)))
+
+(defun all-tag-groups ()
+  (unless (plusp (hash-table-count *all-tag-groups*))
+    (initialize-fred-tags))
+  (let ((groups nil))
+    (maphash #'(lambda (k v)
+                 (declare (ignore k))
+                 (push v groups))
+             *all-tag-groups*)
+    groups))
+           
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Common data-series transform functions that can be used to create derived-data series
+
+(defmethod derived-change-series ((series data-series))
+  (make-instance 'derived-data-series
+    :args (list series)
+    :func #'change-transform
+    :all t
+    :units (concatenate 'string
+                        "change of "
+                        (series-units series))))
+
+(defmethod change-transform ((series data-series))
+  ;; computes the absolute change between series observations
+  ;; change for first value will always be 0
+  (with-slots (series-observations) series
+    (when series-observations
+      (let* ((ser-vals (coerce (series-observations series) 'list))
+             (vals (cons (first ser-vals) ser-vals)))
+        (butlast (maplist #'(lambda (vals)
+                              (when (second vals)
+                                (- (second vals) (first vals))))
+                          vals))))))
+
+(defmethod derived-percent-change-series ((series data-series))
+  (make-instance 'derived-data-series
+    :args (list series)
+    :func #'percent-change-transform
+    :all t
+    :units (concatenate 'string
+                        "change of "
+                        (series-units series))))
+
+(defmethod percent-change-transform ((series data-series))
+  ;; computes the percentage change between series observations
+  ;; change for first value will always be 0
+  (with-slots (series-observations) series
+    (when series-observations
+      (let* ((ser-vals (coerce (series-observations series) 'list))
+             (vals (cons (first ser-vals) ser-vals)))
+        (butlast (maplist #'(lambda (vals)
+                              (when (second vals)
+                                (if (zerop (first vals))
+                                    100.0 ;; not really correct obviously, but we can't represent infinity
+                                    (* 100 (/ (- (second vals) (first vals))
+                                              (first vals))))))
+                          vals))))))
+
+(defun percent-of-transform (val1 val2)
+  (* 100.0 (/ val1 val2)))
+
+(defmethod derived-%-gdp-series ((series data-series))
+  (make-instance 'derived-data-series
+    :args (list series)
+    :func #'percent-of-gdp-transform
+    :all t
+    :units "percent of U.S. GDP"))
+
+(defmethod percent-of-gdp-transform ((series data-series))
+  ;; computes derived series as a percent of U.S. GDP
+  ;; You could do the same thing by doing something like the following:
+  ;; (make-instance 'derived-data-series
+  ;;  :args (list <numerator-series> (find-series "GDP"))
+  ;;  :func #'percent-of-transform
+  ;;  :all nil)
+  ;; which would compute the observation for any particular date each time it
+  ;; is requested rather than computing them all at once, just one time as is done here.
+  (let* ((gdp (find-or-make-series "GDP"))
+         (ser-it (series-observation-iterator series))
+         (mult (* 100 (/ (first (series-multipliers series))
+                         (first (series-multipliers gdp)))))
+        (vals nil))
+    (do* ((dt-val-list (multiple-value-list (funcall ser-it))
+                       (multiple-value-list (funcall ser-it)))
+          (gdp-obs (nil-if-errors (series-observation gdp (first dt-val-list)))
+                   (nil-if-errors (series-observation gdp (first dt-val-list)))))
+         ((null (first dt-val-list)) (nreverse vals))
+      (push (if (and gdp-obs (plusp gdp-obs))
+                (* mult (/ (second dt-val-list) gdp-obs))
+                0.0)
+            vals))))
+    
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Test Functions

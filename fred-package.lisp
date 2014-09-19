@@ -42,10 +42,11 @@ making queries.
   (require :setup "home:quicklisp;setup.lisp")
   (ql:quickload :s-xml)
   (ql:quickload :drakma)
-  (require :hist-date))
+  (require :hist-date)
+  (require :currency))
 
 (defpackage :fred
-  (:use :common-lisp :s-xml :drakma :hist-date)
+  (:use :common-lisp :s-xml :drakma :hist-date :currency)
   (:export
    ;; Class Names
    data-category
@@ -60,6 +61,7 @@ making queries.
    fred-data-tag
    data-tag-group
    fred-data-tag-group
+   derived-data-series
 
    ;; data-category slot accessors
    cat-id
@@ -81,6 +83,7 @@ making queries.
    series-seasonally-adj
    series-last-update-dt
    series-popularity
+   series-transform
    series-notes
    series-interpolation-method
    series-categories
@@ -91,6 +94,12 @@ making queries.
    series-min
    series-avg
    series-sum
+
+   ;; Additional attribute derivation functions for data-series
+   series-denominations
+   series-multipliers
+   series-observation
+   series-observation-iterator
 
    ;; data-release slot accessors
    release-id
@@ -123,8 +132,23 @@ making queries.
    tgroup-id
    tgroup-tags
 
+   ;; derived-data-series accessors
+   dds-transform-args
+   dds-transform-func
+
+   ;; functions that assist in creating derived-data-series
+   change-transform
+   derived-change-series
+   derived-percent-change-series
+   derived-%-gdp-series
+   percent-change-transform
+   percent-of-gdp-transform
+   percent-of-transform
+
    ;; utility function calls
+   all-tag-groups
    find-category
+   find-or-make-series
    find-release
    find-series
    find-source
@@ -132,6 +156,14 @@ making queries.
    find-tag-group
    initialize-fred
    initialize-fred-categories
+   initialize-fred-tags
+   remove-category
+   remove-release
+   remove-series
+   remove-source
+   remove-tag
+   remove-tag-group
+   search-for-series
 
    ;; Below are direct fred API calls
 
