@@ -286,10 +286,10 @@ correct functioning of this code although obviously some newly available informa
     (setf (series-sum self) (apply #'+ obs-list))
     (setf (series-avg self) (/ (series-sum self) num-obs))))
 
-(defmethod series-observation-iterator ((self data-series))
+(defmethod series-observation-iterator ((self data-series) &optional (st-dt 0))
   ;; returns an iterator function which returns the next observation date and value each time it is called
   ;; or nil for each after the end date of the series is reached
-  (let ((next-date (series-start-dt self))
+  (let ((next-date (max st-dt (series-start-dt self)))
         (next-date-interval (case (series-frequency self)
                               (:annual :year)
                               (:quarterly :quarter)
