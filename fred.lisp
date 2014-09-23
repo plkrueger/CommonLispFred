@@ -103,43 +103,81 @@ correct functioning of this code although obviously some newly available informa
   (case freq-key
     (:annual
      (truncate (-dates dt start-dt :year)))
+    (:semiannual
+     (truncate (/ (-dates dt start-dt :year) 2.0)))
     (:quarterly
      (truncate (-dates dt start-dt :quarter)))
     (:monthly
      (truncate (-dates dt start-dt :month)))
     (:weekly
-     (truncate (-dates dt start-dt :week)))))
+     (truncate (-dates dt start-dt :week)))
+    (:bi-weekly
+     (truncate (/ (-dates dt start-dt :week) 2.0)))
+    (:daily
+     (-dates dt start-dt :day))))
 
-(defun period-dates (dt freq-key)
+(defun period-dates (start-dt dt freq-key)
   ;; all period dates encoded as 00:00 AM on the first date of the period
   ;; Find the date in the series that immediately preceded the specified date, which
   ;; represents the current period relative to the dt argument.
   ;; Return dates for the prior period, current period, and next period.
   (multiple-value-bind (yr mm dd)
                        (hist-date-yr-month-day dt)
-    (case freq-key
-      (:annual
-       (let ((current-dt (hist-date yr 01 01)))
-         (values (years- current-dt)
-                 current-dt
-                 (years+ current-dt))))
-      (:quarterly
-       (let* ((quarter-indx (floor (1- mm) 3))
-              (current-dt (hist-date yr (1+ (* 3 quarter-indx)) 01)))
-         (values (date- current-dt 1 :quarter)
-                 current-dt
-                 (date+ current-dt 1 :quarter))))
-      (:monthly
-       (let ((current-dt (hist-date yr mm 01)))
-         (values (months- current-dt)
-                 current-dt
-                 (months+ current-dt))))
-      (:weekly ;; means week ending on Saturday by default
-       (let* ((prior-days (day-span :sat (day-of-wk dt)))
-              (current-dt (days- (hist-date yr mm dd) prior-days)))
-         (values (date- current-dt 1 :week)
-                 current-dt
-                 (date+ current-dt 1 :week)))))))
+    (declare (ignore dd))
+    (multiple-value-bind (strt-yr strt-mm strt-dd)
+                         (hist-date-yr-month-day start-dt)
+      (declare (ignore strt-yr strt-dd))
+      (case freq-key
+        (:annual
+         ;; we do NOT make the assumption that the year starts on 1/1
+         ;; we use the series start date to tell us what month to use
+         (let ((current-dt (if (>= mm strt-mm)
+                               (hist-date yr strt-mm 01)
+                               (hist-date (1- yr) strt-mm 01))))
+           (values (years- current-dt)
+                   current-dt
+                   (years+ current-dt))))
+        (:semiannual
+         ;; we do NOT make the assumption that the half-year periods start on 1/1 and 7/1
+         ;; we use the series start date to tell us what months to use
+         (let* ((low-mm (if (< strt-mm 7) strt-mm (- strt-mm 6)))
+                (hi-mm (if (< strt-mm 7) (+ strt-mm 6) strt-mm))
+                (current-dt (cond ((< mm low-mm)
+                                   (hist-date (1- yr) hi-mm 01))
+                                  ((< mm hi-mm)
+                                   (hist-date yr low-mm 01))
+                                  (t
+                                   (hist-date yr hi-mm 01)))))
+           (values (months- current-dt 6)
+                   current-dt
+                   (months+ current-dt 6))))
+        (:quarterly
+         ;; we DO make the assumption that quarters start on 1/1, 4/1, 7/1, and 10/1
+         (let* ((quarter-indx (floor (1- mm) 3))
+                (current-dt (hist-date yr (1+ (* 3 quarter-indx)) 01)))
+           (values (date- current-dt 1 :quarter)
+                   current-dt
+                   (date+ current-dt 1 :quarter))))
+        (:monthly
+         ;; we DO make the assumption that months start on the first of the month
+         (let ((current-dt (hist-date yr mm 01)))
+           (values (months- current-dt)
+                   current-dt
+                   (months+ current-dt))))
+        (:weekly
+         ;; we do NOT make any assumption about the day of the week on which the series starts
+         ;; we use the day of the week of the series start date to tell us.
+         (let ((current-dt (weeks+ start-dt (truncate (-dates dt start-dt :week)))))
+           (values (date- current-dt 1 :week)
+                   current-dt
+                   (date+ current-dt 1 :week))))
+        (:bi-weekly
+         ;; we do NOT make any assumption about the day of the week or week of the year on which the series starts
+         ;; we use the day of the week of the series start date to tell us.
+         (let ((current-dt (weeks+ start-dt (* 2 (truncate (-dates dt start-dt :week) 2)))))
+           (values (date- current-dt 2 :week)
+                   current-dt
+                   (date+ current-dt 2 :week))))))))
 
 (defun remove-lf-strs (xml-form)
   (let* ((lf-str (make-string 1 :initial-element #\lf))
@@ -157,7 +195,9 @@ correct functioning of this code although obviously some newly available informa
 
 (defun fred-string-to-freq-key (fred-str)
   (let* ((wrds (mapcar #'string-upcase (words fred-str ",. ")))
-         (freq-wrds (intersection wrds (list "ANNUAL" "QUARTERLY" "MONTHLY" "WEEKLY") :test #'string=)))
+         (freq-wrds (intersection wrds 
+                                  (list "ANNUAL" "SEMIANNUAL" "QUARTERLY" "MONTHLY" "WEEKLY" "BI-WEEKLY" "DAILY")
+                                  :test #'string=)))
     (if freq-wrds
         (intern (first freq-wrds) (find-package :keyword))
         :ANNUAL)))
@@ -173,7 +213,7 @@ correct functioning of this code although obviously some newly available informa
 
 (defun period-indices (start-dt freq obs-dt)
   (multiple-value-bind (prior-period-dt current-period-dt next-period-dt)
-                       (period-dates obs-dt freq)
+                       (period-dates start-dt obs-dt freq)
     (let ((current-indx (data-index obs-dt start-dt freq)))
       (values prior-period-dt
               (max (1- current-indx) 0)
@@ -291,16 +331,18 @@ correct functioning of this code although obviously some newly available informa
   ;; or nil for each after the end date of the series is reached
   (let ((next-date (max st-dt (series-start-dt self)))
         (next-date-interval (case (series-frequency self)
-                              (:annual :year)
-                              (:quarterly :quarter)
-                              (:monthly :month)
-                              (:weekly :week))))
+                              (:annual (list 1 :year))
+                              (:semiannual (list 6 :month))
+                              (:quarterly (list 1 :quarter))
+                              (:monthly (list 1 :month))
+                              (:weekly (list 1 :week))
+                              (:bi-weekly (list 2 :week)))))
     #'(lambda ()
         (multiple-value-prog1
           (if (> next-date (series-end-dt self))
               (values nil nil)
               (values next-date (series-observation self next-date)))
-          (setf next-date (date+ next-date 1 next-date-interval))))))
+          (setf next-date (date+ next-date (first next-date-interval) (second next-date-interval)))))))
 
 ;; release
 
@@ -431,7 +473,7 @@ correct functioning of this code although obviously some newly available informa
                             frequency frequency-short units units_short seasonal-adjustment
                             seasonal-adjustment-short last-updated popularity notes)
                         series-info
-      (declare (ignore realtime-start realtime-end frequency-short units_short seasonal-adjustment-short))
+      (declare (ignore realtime-start realtime-end units_short seasonal-adjustment-short))
       (let ((series (or (find-series id)
                         (make-instance 'fred-data-series
                           :id id
@@ -439,6 +481,7 @@ correct functioning of this code although obviously some newly available informa
                           :start observation-start
                           :end observation-end
                           :freq frequency
+                          :short-freq frequency-short
                           :units units
                           :seas-adj seasonal-adjustment
                           :last-update last-updated
@@ -706,7 +749,7 @@ correct functioning of this code although obviously some newly available informa
                             frequency frequency-short units units_short seasonal-adjustment
                             seasonal-adjustment-short last-updated popularity notes)
                         series-info
-      (declare (ignore realtime-start realtime-end frequency-short units_short seasonal-adjustment))
+      (declare (ignore realtime-start realtime-end units_short seasonal-adjustment))
       (let ((series (or (find-series id)
                         (make-instance 'fred-data-series
                           :id id
@@ -714,6 +757,7 @@ correct functioning of this code although obviously some newly available informa
                           :start observation-start
                           :end observation-end
                           :freq frequency
+                          :short-freq frequency-short
                           :units units
                           :seas-adj seasonal-adjustment-short
                           :last-update last-updated
@@ -815,7 +859,7 @@ correct functioning of this code although obviously some newly available informa
                             frequency frequency-short units units_short seasonal-adjustment
                             seasonal-adjustment-short last-updated popularity notes)
                         series-info
-      (declare (ignore realtime-start realtime-end frequency-short units_short seasonal-adjustment))
+      (declare (ignore realtime-start realtime-end units_short seasonal-adjustment))
       (let ((series (or (find-series id)
                         (make-instance 'fred-data-series
                           :id id
@@ -823,6 +867,7 @@ correct functioning of this code although obviously some newly available informa
                           :start observation-start
                           :end observation-end
                           :freq frequency
+                          :short-freq frequency-short
                           :units units
                           :seas-adj seasonal-adjustment-short
                           :last-update last-updated
@@ -1068,8 +1113,8 @@ what we get from FRED we will just remove those strings.
         (xml-assoc :|title| tag)
         (intl-string-to-date (xml-assoc :|observation_start| tag))
         (intl-string-to-date (xml-assoc :|observation_end| tag))
-        (fred-string-to-key (xml-assoc :|frequency| tag))
-        (fred-string-to-freq-key (xml-assoc :|frequency_short| tag))
+        (fred-string-to-freq-key (xml-assoc :|frequency| tag))
+        (fred-string-to-key (xml-assoc :|frequency_short| tag))
         (xml-assoc :|units| tag)
         (xml-assoc :|units_short| tag)
         (xml-assoc :|seasonal_adjustment| tag)
@@ -2085,14 +2130,14 @@ what we get from FRED we will just remove those strings.
                               seasonal-adjustment seasonal-adjustment-short last-updated
                               popularity notes)
                            (fred-series :series-id series-id)
-         (declare (ignore realtime-start realtime-end frequency-short units-short
-                          seasonal-adjustment))
+         (declare (ignore realtime-start realtime-end units-short seasonal-adjustment))
          (make-instance 'fred-data-series
            :id id
            :title title
            :start observation-start
            :end observation-end
            :freq frequency
+           :short-freq frequency-short
            :units units
            :seas-adj seasonal-adjustment-short
            :last-update last-updated
@@ -2108,8 +2153,7 @@ what we get from FRED we will just remove those strings.
                               seasonal-adjustment seasonal-adjustment-short last-updated
                               popularity notes)
                           series-info
-        (declare (ignore realtime-start realtime-end frequency-short units-short
-                         seasonal-adjustment))
+        (declare (ignore realtime-start realtime-end units-short seasonal-adjustment))
         (push (or (find-series id)
                   (make-instance 'fred-data-series
                     :id id
@@ -2117,6 +2161,7 @@ what we get from FRED we will just remove those strings.
                     :start observation-start
                     :end observation-end
                     :freq frequency
+                    :short-freq frequency-short
                     :units units
                     :seas-adj seasonal-adjustment-short
                     :last-update last-updated
@@ -2249,7 +2294,11 @@ what we get from FRED we will just remove those strings.
 (setf (series-interpolation-method ad-series) :avg)
 ;; rerun series-observation calls
 (setf rel (series-release ad-series))
-
+(search-for-series (list "weekly" "U.S."))
+(mapcar #'(lamda (ser)
+             (list (series-id ser) (series-title ser)))
+        *)
+(fred-series :series-id "BASE")
 |#
 
 (provide :fred)

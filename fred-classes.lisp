@@ -94,7 +94,9 @@ another series.
    (series-end-dt :accessor series-end-dt
                   :initarg :end)
    (series-frequency :accessor series-frequency
-                     :initarg :freq)  ;; :annual :quarterly :monthly :weekly
+                     :initarg :freq)  ;; :annual :semiannual :quarterly :monthly :weekly :bi-weekly :daily
+   (series-freq-short :accessor series-freq-short
+                      :initarg :short-freq) ;; :a :sa :q :m :w :bw :d :wef :weth :wew :wetu :wem :wesu :wesa :bwew :bwem
    (series-units :accessor series-units
                  :initarg :units)
    (series-seasonally-adj :accessor series-seasonally-adj
@@ -131,6 +133,7 @@ another series.
     :start 0
     :end 0
     :freq nil
+    :short-freq nil
     :units nil
     :seas-adj nil
     :last-update 0
