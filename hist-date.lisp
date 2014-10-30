@@ -329,16 +329,22 @@ that is possible (i.e. for dates after Jan 1, 1900).
 
 (defun -months (dt1 dt2)
   ;; computes a floating point value of months where the fraction of a month is
-  ;; computed using 7 days as .25 of 1 month
+  ;; computed as a fraction of the number of days in the dt1 month.
   ;; round the result if you want an integer
   ;; This has some use if you want to treat each month as a constant span on a graph
-  ;; or something like that. For example (-months (hist-date 2012 2 3) (hist-date 2012 4 3))
+  ;; or something like that. For example (-months (hist-date 2012 4 3) (hist-date 2012 2 3))
   ;; will return 2.0.
   (multiple-value-bind (yr1 mm1 dd1)
                        (hist-date-yr-month-day dt1)
     (multiple-value-bind (yr2 mm2 dd2)
                        (hist-date-yr-month-day dt2)
-      (float (+ (* 12 (- yr1 yr2)) (- mm1 mm2) (/ (- dd1 dd2) 28))))))
+      (let ((max-dd (if (and (eql mm1 2)
+                             (not (logtest yr1 3))
+                             (or (eql 0 (mod yr1 400))
+                                 (not (eql 0 (mod yr1 100)))))
+                        29
+                        (svref #(31 28 31 30 31 30 31 31 30 31 30 31) (1- mm1)))))
+        (float (+ (* 12 (- yr1 yr2)) (- mm1 mm2) (/ (- dd1 dd2) max-dd)))))))
 
 (defun -years (dt1 dt2)
   ;; computes a floating point value of years where the fraction of a year is

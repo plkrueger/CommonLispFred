@@ -313,18 +313,53 @@ correct functioning of this code although obviously some newly available informa
                                        &allow-other-keys)
   (setf (gethash (cons (series-id self) (series-transform self)) *all-series*) self))
 
-
 (defmethod set-series-observations ((self data-series) obs-list)
-  (let ((num-obs (list-length obs-list)))
+  (let* ((num-obs (list-length obs-list))
+         (array-sz (1+ (data-index (series-end-dt self) (series-start-dt self) (series-frequency self))))
+         (content-obs (if (>= num-obs array-sz)
+                          obs-list
+                          (append obs-list (make-list (- array-sz num-obs) :initial-element 0)))))
     (setf (slot-value self 'series-observations)
-          (make-array (list num-obs)
+          (make-array (list array-sz)
                       :adjustable t
                       :fill-pointer t
-                      :initial-contents obs-list))
-    (setf (series-max self) (apply #'max obs-list))
-    (setf (series-min self) (apply #'min obs-list))
-    (setf (series-sum self) (apply #'+ obs-list))
-    (setf (series-avg self) (/ (series-sum self) num-obs))))
+                      :initial-contents content-obs))
+    (setf (series-max self) (reduce #'max content-obs))
+    (setf (series-min self) (reduce #'min content-obs))
+    (setf (series-sum self) (apply #'+ content-obs))
+    (setf (series-avg self) (/ (series-sum self) array-sz))
+    (slot-value self 'series-observations)))
+
+(defmethod (setf series-observation) (val (self data-series) obs-dt)
+  ;; set a single value for a series
+  ;; obs-dt must be between series-start-dt and series-end-dt
+  (with-slots (series-start-dt series-end-dt series-frequency series-max series-min
+                               series-id series-sum series-avg series-observations) self
+    (when (or (< obs-dt series-start-dt)
+              (> obs-dt series-end-dt))
+      (error "~a is not within the range of observed dates for series ~s"
+             (fred-date-string obs-dt)
+             series-id))
+    (let* ((indx (data-index obs-dt series-start-dt series-frequency))
+           (old-val (aref series-observations indx)))
+      (setf (aref series-observations indx) val)
+      (if (> val series-max)
+          (setf series-max val)
+          (if (= old-val series-max)
+              (setf series-max (reduce #'max series-observations))))
+      (if (< val series-min)
+          (setf series-min val)
+          (if (= old-val series-min)
+              (setf series-min (reduce #'min series-observations))))
+      (decf series-sum old-val)
+      (incf series-sum val)
+      (setf series-avg (/ series-sum (first (array-dimensions series-observations)))))
+    val))
+
+(defmethod slot-unbound ((cl (eql (find-class 'data-series)))
+                         (self data-series)
+                         (slot (eql 'series-observations)))
+  (set-series-observations self nil))
 
 (defmethod series-observation-iterator ((self data-series) &optional (st-dt 0))
   ;; returns an iterator function which returns the next observation date and value each time it is called
