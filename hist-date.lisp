@@ -5,19 +5,19 @@ The MIT license.
 
 Copyright (c) 2014 Paul L. Krueger
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
-and associated documentation files (the "Software"), to deal in the Software without restriction, 
-including without limitation the rights to use, copy, modify, merge, publish, distribute, 
-sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is 
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+and associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all copies or substantial 
+The above copyright notice and this permission notice shall be included in all copies or substantial
 portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT 
-LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 |#
@@ -30,8 +30,8 @@ dates and computing differences between dates) a better representation is desira
 
 This file implements such a package. Basically dates are represented as an integer that encodes a
 date as a day-number (with day 0 being March 1, 0000) left shifted by 17 bits (i.e. multiplying by 131072)
-plus the number of seconds in the time of day. This makes dates numerically comparable (i.e. later dates 
-are > than earlier dates). 
+plus the number of seconds in the time of day. This makes dates numerically comparable (i.e. later dates
+are > than earlier dates).
 
 Methods are provided to construct and print such dates and to do various sorts
 of useful computation on them. Time zones are ignored so it is not possible to compare times around the
@@ -39,7 +39,7 @@ world. Daylight saving time is also ignored.
 
 This uses algorithms for the Gregorian calendar, so no dates prior to October 1, 1582 can be representd
 accurately. You can physically encode dates as early as March 1, 0000, but the day of week computation for
-dates earlier than October 1, 1582 will be incorrect, as will date differences. No checks are done to see 
+dates earlier than October 1, 1582 will be incorrect, as will date differences. No checks are done to see
 that dates are within the range of the Gregorian calendar.
 
 Computations assume that every year that is exactly divisible by four is a leap year, except for years
@@ -192,11 +192,11 @@ that is possible (i.e. for dates after Jan 1, 1900).
         (values hrs min sec)))))
 
 (defun day-of-wk (dt)
-  (nth (mod (hist-date-day dt) 7) 
+  (nth (mod (hist-date-day dt) 7)
        '(:wednesday :thursday :friday :saturday :sunday :monday :tuesday )))
 
 (defun short-day-of-wk (dt)
-  (nth (mod (hist-date-day dt) 7) 
+  (nth (mod (hist-date-day dt) 7)
        '(:wed :thu :fri :sat :sun :mon :tue)))
 
 (defun dt-year (dt)
@@ -416,65 +416,65 @@ that is possible (i.e. for dates after Jan 1, 1900).
 ;;; Formatting hist-dates as strings
 
 (defun string-day-of-wk (dt)
-  (nth (mod (hist-date-day dt) 7) 
+  (nth (mod (hist-date-day dt) 7)
        '("Wednesday" "Thursday" "Friday" "Saturday" "Sunday" "Monday" "Tuesday")))
 
 (defun string-day-of-wk-short (dt)
-  (nth (mod (hist-date-day dt) 7) 
+  (nth (mod (hist-date-day dt) 7)
        '("Wed" "Thu" "Fri" "Sat" "Sun" "Mon" "Tue")))
 
 (defun string-date (dt)
   (multiple-value-bind (yr mm dd)
                        (hist-date-yr-month-day dt)
-    (format nil 
-            "~a ~2,'0d/~2,'0d/~2,'0d" 
+    (format nil
+            "~a ~2,'0d/~2,'0d/~2,'0d"
             (string-day-of-wk dt)
             mm dd (mod yr 100))))
 
 (defun string-intl-date (dt)
   (multiple-value-bind (yr mm dd)
                        (hist-date-yr-month-day dt)
-    (format nil 
+    (format nil
             "~4,'0d-~2,'0d-~2,'0d" yr mm dd)))
 
 (defun string-date-short (dt)
   (multiple-value-bind (yr mm dd)
                        (hist-date-yr-month-day dt)
-    (format nil 
+    (format nil
             "~2,'0d/~2,'0d/~2,'0d" mm dd (mod yr 100))))
 
 (defun string-date-time-short (dt)
   (multiple-value-bind (hr min sec)
                        (hist-date-hr-min-sec dt)
     (declare (ignore sec))
-    (format nil 
+    (format nil
             "~2,'0d:~2,'0d" hr min)))
 
 (defun string-time (dt)
   (multiple-value-bind (hr min sec)
                        (hist-date-hr-min-sec dt)
-    (format nil 
+    (format nil
             "~2,'0d:~2,'0d:~2,'0d on ~a" hr min sec (string-date dt))))
 
 (defun string-mmdd (dt)
   (multiple-value-bind (yr mm dd)
                        (hist-date-yr-month-day dt)
     (declare (ignore yr))
-    (format nil 
+    (format nil
             "~2,'0d/~2,'0d" mm dd)))
 
 (defun string-mmyy (dt)
   (multiple-value-bind (yr mm dd)
                        (hist-date-yr-month-day dt)
     (declare (ignore dd))
-    (format nil 
+    (format nil
             "~2,'0d/~2,'0d" mm (mod yr 100))))
 
 (defun string-yr (dt)
   (multiple-value-bind (yr mm dd)
                        (hist-date-yr-month-day dt)
     (declare (ignore mm dd))
-    (format nil 
+    (format nil
             "~4,'0d" yr)))
 
 (provide :hist-date)

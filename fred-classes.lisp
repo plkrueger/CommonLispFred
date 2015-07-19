@@ -5,26 +5,26 @@ The MIT license.
 
 Copyright (c) 2014 Paul L. Krueger
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
-and associated documentation files (the "Software"), to deal in the Software without restriction, 
-including without limitation the rights to use, copy, modify, merge, publish, distribute, 
-sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is 
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+and associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
 By using this software, you are agreeing to be bound by the FRED® API Terms of Use as described by:
-       http://api.stlouisfed.org/terms_of_use.html 
+       http://api.stlouisfed.org/terms_of_use.html
 
 This product uses the FRED® API but is not endorsed or certified by the Federal Reserve Bank of St. Louis.
 Information obtained using this API is subject to the "Legal Notices, Information and Disclaimers" described
 at https://research.stlouisfed.org/legal.html.
 
-The above copyright notice and this permission notice shall be included in all copies or substantial 
+The above copyright notice and this permission notice shall be included in all copies or substantial
 portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT 
-LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 |#
@@ -51,8 +51,8 @@ manner from one or more other series. If the derivation is a simple mathematical
 series on the same date, then those values can be generated at the time requested just by applyin the
 transform function to values from the other series on the same date. Sometimes a derived series is a function
 of observations from one or more argument series on multiple dates. For those, it is necessary to compute values
-for the whole series that can be accessed just as values for other series are accessed. An example of such a 
-derived series might be one that represents the change in values of some other series as a percentage of yet 
+for the whole series that can be accessed just as values for other series are accessed. An example of such a
+derived series might be one that represents the change in values of some other series as a percentage of yet
 another series.
 
 |#
@@ -245,4 +245,3 @@ another series.
     :tags nil))
 
 (provide :fred-classes)
-    

@@ -5,26 +5,26 @@ The MIT license.
 
 Copyright (c) 2014 Paul L. Krueger
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
-and associated documentation files (the "Software"), to deal in the Software without restriction, 
-including without limitation the rights to use, copy, modify, merge, publish, distribute, 
-sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is 
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+and associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
 By using this software, you are agreeing to be bound by the FRED® API Terms of Use as described by:
-       http://api.stlouisfed.org/terms_of_use.html 
+       http://api.stlouisfed.org/terms_of_use.html
 
 This product uses the FRED® API but is not endorsed or certified by the Federal Reserve Bank of St. Louis.
 Information obtained using this API is subject to the "Legal Notices, Information and Disclaimers" described
 at https://research.stlouisfed.org/legal.html.
 
-The above copyright notice and this permission notice shall be included in all copies or substantial 
+The above copyright notice and this permission notice shall be included in all copies or substantial
 portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT 
-LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 |#
@@ -46,7 +46,7 @@ must be defined for new classes.
 
 This implemenation loads data from the FRED® facility in a lazy manner, only when a user first attempts to access it.
 
-The FRED® API used here is as documented on the FRED website on 8/14/2014. Subsequent changes to that 
+The FRED® API used here is as documented on the FRED website on 8/14/2014. Subsequent changes to that
 definition are not reflected here. Additions to returned XML forms or reordering of their contents will not prevent
 correct functioning of this code although obviously some newly available information may not be retrieved.
 
@@ -195,7 +195,7 @@ correct functioning of this code although obviously some newly available informa
 
 (defun fred-string-to-freq-key (fred-str)
   (let* ((wrds (mapcar #'string-upcase (words fred-str ",. ")))
-         (freq-wrds (intersection wrds 
+         (freq-wrds (intersection wrds
                                   (list "ANNUAL" "SEMIANNUAL" "QUARTERLY" "MONTHLY" "WEEKLY" "BI-WEEKLY" "DAILY")
                                   :test #'string=)))
     (if freq-wrds
@@ -246,7 +246,7 @@ correct functioning of this code although obviously some newly available informa
             nil)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; FRED initialization 
+;; FRED initialization
 
 ;; either call this function with your api-key or just modify the defvar for *fred-api-key*
 ;; or call this function with a file in your home directory that contains a quoted string
@@ -305,8 +305,8 @@ correct functioning of this code although obviously some newly available informa
                                        &key
                                        &allow-other-keys)
   (setf (gethash (cat-id self) *all-categories*) self))
-    
-;; series 
+
+;; series
 
 (defmethod initialize-instance :after ((self data-series)
                                        &key
@@ -464,7 +464,7 @@ correct functioning of this code although obviously some newly available informa
 ;; class methods for fred-specific classes.
 ;;
 ;; initialize-instance :after methods will execute FRED queries as needed to
-;; fill in slots that contain basic property values for that object if 
+;; fill in slots that contain basic property values for that object if
 ;; not provided by appropriate initargs.
 ;;
 ;; slot-unbound methods implement lazy evaluation of slots that are used
@@ -561,7 +561,7 @@ correct functioning of this code although obviously some newly available informa
                        :series-count series-count))))
         (push tag (slot-value self 'cat-related)))))
   (slot-value self 'cat-related))
-      
+
 ;; fred-data-series
 
 (defmethod initialize-instance :after ((self fred-data-series)
@@ -571,7 +571,7 @@ correct functioning of this code although obviously some newly available informa
                          series-units series-seasonally-adj series-last-update-dt
                          series-popularity series-notes series-transform) self
     (unless series-title
-      (destructuring-bind (id realtime-start realtime-end title observation-start 
+      (destructuring-bind (id realtime-start realtime-end title observation-start
                               observation-end frequency frequency-short units units-short
                               seasonal-adjustment seasonal-adjustment-short last-updated
                               popularity notes)
@@ -610,7 +610,7 @@ correct functioning of this code although obviously some newly available informa
   (destructuring-bind (id realtime-start realtime-end name press-release link notes)
                       (fred-series-release :series-id (series-id self))
     (declare (ignore realtime-start realtime-end))
-    (setf (slot-value self 'series-release) 
+    (setf (slot-value self 'series-release)
           (or (find-release id)
               (make-instance 'fred-data-release
                 :id id
@@ -662,7 +662,7 @@ correct functioning of this code although obviously some newly available informa
        (found-multipliers nil))
       ((null wrds) (nreverse found-multipliers))
     (let ((mult (some #'(lambda (wrd)
-                          (rest (assoc wrd 
+                          (rest (assoc wrd
                                        '(("ones" . 1) ("one" . 1)
                                          ("tens" . 10) ("ten" . 10)
                                          ("hundreds" . 100) ("hundred" . 100)
@@ -746,8 +746,8 @@ correct functioning of this code although obviously some newly available informa
   (when (and (not (slot-boundp self 'series-observations)) all)
     ;; transform all series observations at init time
     ;; transform-func will be applied to all args (which are data-series) directly
-    (set-series-observations self 
-                             (apply (dds-transform-func self) 
+    (set-series-observations self
+                             (apply (dds-transform-func self)
                                     (dds-transform-args self)))))
 
 (defmethod series-observation ((self derived-data-series) obs-date)
@@ -759,7 +759,7 @@ correct functioning of this code although obviously some newly available informa
 
 ;; fred-data-release
 
-(defmethod initialize-instance :after ((self fred-data-release) 
+(defmethod initialize-instance :after ((self fred-data-release)
                                        &key
                                        &allow-other-keys)
   (with-slots (release-id release-name release-press-release release-link release-notes) self
@@ -839,7 +839,7 @@ correct functioning of this code although obviously some newly available informa
 
 ;; fred-data-source
 
-(defmethod initialize-instance :after ((self fred-data-source) 
+(defmethod initialize-instance :after ((self fred-data-source)
                                        &key
                                        &allow-other-keys)
   (with-slots (source-id source-name source-link source-notes) self
@@ -871,7 +871,7 @@ correct functioning of this code although obviously some newly available informa
 
 ;; fred-data-tag
 
-(defmethod initialize-instance :after ((self fred-data-tag) 
+(defmethod initialize-instance :after ((self fred-data-tag)
                                        &key
                                        &allow-other-keys)
   (with-slots (tag-name tag-group-id tag-notes tag-created tag-popularity tag-series-count tag-group) self
@@ -933,7 +933,7 @@ correct functioning of this code although obviously some newly available informa
                         :series-count series-count))))
         (push tag (slot-value self 'tgroup-tags)))))
   (slot-value self 'tgroup-tags))
-           
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; FRED API functions
 
@@ -945,15 +945,15 @@ The xml parser being used will transform:
 <token>
 </token>
 
-into 
+into
 
 (:|token| "
 ")
 
-i.e. a list that contains as its second element a string containing a single 
+i.e. a list that contains as its second element a string containing a single
 linefeed character. That might be valid for some sorts of XML structures, but for
 what we get from FRED we will just remove those strings.
- 
+
 |#
 
 (defun fred-query (query-string key-value-alist)
@@ -961,8 +961,8 @@ what we get from FRED we will just remove those strings.
       (initialize-fred)
       (error "FRED API key not initialized. Call initialize-fred with api key as the argument or\
  create API_Key.txt containing key as quoted string in home directory"))
-  (let* ((result (parse-xml-string 
-                  (http-request (concatenate 'string "http://api.stlouisfed.org/fred/" query-string)
+  (let* ((result (parse-xml-string
+                  (http-request (concatenate 'string "https://api.stlouisfed.org/fred/" query-string)
                                 :parameters (acons "api_key" *fred-api-key* key-value-alist))))
          (first-obj (xml-form-tag result))
          (error-info  (and (listp first-obj)
@@ -1006,7 +1006,7 @@ what we get from FRED we will just remove those strings.
      (error "~s is not a valid date argument" dt))))
 
 (defun units-string (units)
-  ;; lin = no transformation, 
+  ;; lin = no transformation,
   ;; chg = change from previous value
   ;; ch1 = change from year ago
   ;; pch = % change from previous value
@@ -1033,13 +1033,13 @@ what we get from FRED we will just remove those strings.
                      (:cca . "continuously compounded annual rate of change of ")
                      (:log . "natural log of "))))
       ""))
-           
-(defun search-type-string (stype)  
+
+(defun search-type-string (stype)
   (or (find (param-string stype) '("full_text" "series_id") :test #'string=)
       (error "~s is not a valid search-type keyword or string" stype)))
 
 (defun series-order-by-string (ob)
-  (or (find (param-string ob) 
+  (or (find (param-string ob)
             '("search_rank" "series_id" "title" "units" "frequency" "seasonal_adjustment"
               "realime_start" "realtime_end" "last_updated" "observation_start"
               "observation_end" "popularity")
@@ -1057,7 +1057,7 @@ what we get from FRED we will just remove those strings.
             '("release_id" "name" "press_release" "realtime_start" "realtime_end")
             :test #'string=)
       (error "~s is not a valid release-order keyword or string" ob)))
-  
+
 (defun sort-order-string (so)
   ;; asc = ascending
   ;; desc = descending
@@ -1089,7 +1089,7 @@ what we get from FRED we will just remove those strings.
 
 (defun tag-group-id-string (tg)
   ;; freq = frequency, gen = general or concept, geo = geography, geot = geography type
-  ;; rls = release, seas = seasonal adjustment, src = source 
+  ;; rls = release, seas = seasonal adjustment, src = source
   (or (find (param-string tg)
             '("freq" "gen" "geo" "geot" "rls" "seas" "src")
             :test #'string=)
@@ -1108,7 +1108,7 @@ what we get from FRED we will just remove those strings.
   ;; Return value immediately following key in xml-struct
   ;; If not found return an empty string which can maybe be translated into some reasonable default
   (let ((pos (position key xml-struct)))
-    (if pos 
+    (if pos
       (nth (1+ pos) xml-struct)
       "")))
 
@@ -1141,7 +1141,7 @@ what we get from FRED we will just remove those strings.
          (xml-assoc :|notes| tag)))
 
 (defun parse-series-tag (tag)
-  ;; Returns a list: 
+  ;; Returns a list:
   ;; (id realtime-start realtime-end title observation-start observation-end frequency
   ;;   frequency-short units units-short seasonal-adjustment seasonal-adjustment-short
   ;;   last-updated popularity notes)
@@ -1162,7 +1162,7 @@ what we get from FRED we will just remove those strings.
         (xml-assoc :|notes| tag)))
 
 (defun parse-tag-tag (tag)
-  ;; Returns a list: 
+  ;; Returns a list:
   ;; (name group-id notes created popularity series-count)
    (list (xml-assoc :|name| tag)
          (xml-assoc :|group_id| tag)
@@ -1172,7 +1172,7 @@ what we get from FRED we will just remove those strings.
          (fred-string-to-num (xml-assoc :|series_count| tag))))
 
 (defun parse-release-tag (tag)
-  ;; Returns a list: 
+  ;; Returns a list:
   ;; (id realtime-start realtime-end name press-release link notes)
   (list (xml-assoc :|id| tag)
         (intl-string-to-date (xml-assoc :|realtime_start| tag))
@@ -1183,7 +1183,7 @@ what we get from FRED we will just remove those strings.
         (xml-assoc :|notes| tag)))
 
 (defun parse-release-date-form (xml-form)
-  ;; Returns a list: 
+  ;; Returns a list:
   ;; (date release-id release-name release-last-updated)
   ;; release-last-updated will be nil unless query asked for dates for which no data was released
   (let ((tag (xml-form-tag xml-form)))
@@ -1197,7 +1197,7 @@ what we get from FRED we will just remove those strings.
   (intl-string-to-date (first (xml-form-body xml-form))))
 
 (defun parse-source-tag (tag)
-  ;; Returns a list: 
+  ;; Returns a list:
   ;; (id realtime-start realtime-end name link notes)
   (list (xml-assoc :|id| tag)
         (intl-string-to-date (xml-assoc :|realtime_start| tag))
@@ -1207,7 +1207,7 @@ what we get from FRED we will just remove those strings.
         (xml-assoc :|notes| tag)))
 
 (defun parse-observation-tag (tag)
-  ;; Returns a list: 
+  ;; Returns a list:
   ;; (realtime-start realtime-end date value)
   (list (intl-string-to-date (xml-assoc :|realtime_start| tag))
         (intl-string-to-date (xml-assoc :|realtime_end| tag))
@@ -1215,7 +1215,7 @@ what we get from FRED we will just remove those strings.
         (fred-string-to-num (xml-assoc :|value| tag))))
 
 ;; Below are the actual FRED queries and transformation of response into a list of values.
-;; Probably the best way to use these functions is by calling them as the expression evaluated 
+;; Probably the best way to use these functions is by calling them as the expression evaluated
 ;; to determine parameter values for a destructuring-bind call. See examples elsewhere in this file.
 ;; The query parameters are passed back in the tag of the xml form returned by all FRED api functions.
 ;; Those are typically not needed, but are passed back (as a lisp list) as the second
@@ -1428,7 +1428,7 @@ what we get from FRED we will just remove those strings.
          (irdwnd-cons (if ird-provided ;; need this because nil is a valid value for this parameter
                           (cons "include_release_dates_with_no_data" (param-string include-release-dates-with-no-data))))
          (response (fred-query "releases/dates"
-                               (list-non-nil rts-cons 
+                               (list-non-nil rts-cons
                                              rte-cons
                                              limit-cons
                                              offset-cons
@@ -1480,7 +1480,7 @@ what we get from FRED we will just remove those strings.
                           (cons "include_release_dates_with_no_data" (param-string include-release-dates-with-no-data))))
          (response (fred-query "release/dates"
                                (list-non-nil release-id-cons
-                                             rts-cons 
+                                             rts-cons
                                              rte-cons
                                              limit-cons
                                              offset-cons
@@ -1533,7 +1533,7 @@ what we get from FRED we will just remove those strings.
                                              tag-names-cons))))
     (values (parse-body-tags response parse-series-tag)
             (xml-form-tag response))))
-  
+
 (defun fred-release-sources (&key (release-id "0")
                                   (realtime-start nil)
                                   (realtime-end nil))
@@ -1780,7 +1780,7 @@ what we get from FRED we will just remove those strings.
          (tag-names-cons (and tag-names
                               (cons "tag_names" (conjoin-strings-for-query tag-names))))
          (response (fred-query "series/search"
-                               (list-non-nil stext-cons 
+                               (list-non-nil stext-cons
                                              stype-cons
                                              rts-cons
                                              rte-cons
@@ -1913,7 +1913,7 @@ what we get from FRED we will just remove those strings.
                                  (limit nil)
                                  (offset nil)
                                  (filter-value nil))
-  ;; fred/series/updates - Get economic data series sorted by when observations were 
+  ;; fred/series/updates - Get economic data series sorted by when observations were
   ;; updated on the FRED® server.
   (let* ((rts-cons (and realtime-start
                         (cons "realtime_start" (fred-date-string realtime-start))))
@@ -1940,7 +1940,7 @@ what we get from FRED we will just remove those strings.
                                       (limit nil)
                                       (offset nil)
                                       (sort-order nil))
-  ;; fred/series/vintagedates - Get the dates in history when a series' data values 
+  ;; fred/series/vintagedates - Get the dates in history when a series' data values
   ;; were revised or new data values were released.
   (let* ((series-id-cons (cons "series_id" (string series-id)))
          (rts-cons (and realtime-start
@@ -2163,7 +2163,7 @@ what we get from FRED we will just remove those strings.
 (defun find-or-make-series (series-id)
   (or (find-series series-id)
       (nil-if-errors
-       (destructuring-bind (id realtime-start realtime-end title observation-start 
+       (destructuring-bind (id realtime-start realtime-end title observation-start
                               observation-end frequency frequency-short units units-short
                               seasonal-adjustment seasonal-adjustment-short last-updated
                               popularity notes)
@@ -2186,7 +2186,7 @@ what we get from FRED we will just remove those strings.
   (let ((found-series (fred-series-search :search-text search-term-list))
         (series-list nil))
     (dolist (series-info found-series)
-      (destructuring-bind (id realtime-start realtime-end title observation-start 
+      (destructuring-bind (id realtime-start realtime-end title observation-start
                               observation-end frequency frequency-short units units-short
                               seasonal-adjustment seasonal-adjustment-short last-updated
                               popularity notes)
@@ -2217,7 +2217,7 @@ what we get from FRED we will just remove those strings.
                  (push v groups))
              *all-tag-groups*)
     groups))
-           
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Common data-series transform functions that can be used to create derived-data series
 
@@ -2299,7 +2299,7 @@ what we get from FRED we will just remove those strings.
                 (* mult (/ (second dt-val-list) gdp-obs))
                 0.0)
             vals))))
-    
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Test Functions
