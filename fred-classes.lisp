@@ -57,9 +57,6 @@ another series.
 
 |#
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (require :fred-package))
-
 (in-package :fred)
 
 (defclass data-category ()
@@ -243,5 +240,3 @@ another series.
     :categories nil
     :release nil
     :tags nil))
-
-(provide :fred-classes)

@@ -38,13 +38,6 @@ making queries.
 
 |#
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (require :setup "home:quicklisp;setup.lisp")
-  (ql:quickload :s-xml)
-  (ql:quickload :drakma)
-  (require :hist-date)
-  (require :currency))
-
 (defpackage :fred
   (:use :common-lisp :s-xml :drakma :hist-date :currency)
   (:export
@@ -207,6 +200,5 @@ making queries.
    fred-related-tags                 ;; fred/related_tags - Get the related tags for one or more tags.
    fred-tags-series                  ;; fred/tags/series - Get the series matching tags.
 
+   *fred-api-key*                    ;; The API key - dynamically rebind it for your purposes.
 ))
-
-(provide :fred-package)

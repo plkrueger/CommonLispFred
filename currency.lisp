@@ -439,5 +439,3 @@ This file provides world currency data and access mechanisms.
         (push (string (elt s p)) words)))))
 
 (populate-hash-tables)
-
-(provide :currency)

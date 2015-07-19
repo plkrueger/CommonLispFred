@@ -53,9 +53,6 @@ correct functioning of this code although obviously some newly available informa
 |#
 
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (require :fred-classes))
-
 (in-package :fred)
 
 ;; Global variables
@@ -2338,5 +2335,3 @@ what we get from FRED we will just remove those strings.
         *)
 (fred-series :series-id "BASE")
 |#
-
-(provide :fred)

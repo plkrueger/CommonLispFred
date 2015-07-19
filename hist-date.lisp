@@ -476,5 +476,3 @@ that is possible (i.e. for dates after Jan 1, 1900).
     (declare (ignore mm dd))
     (format nil
             "~4,'0d" yr)))
-
-(provide :hist-date)
