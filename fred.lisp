@@ -962,7 +962,7 @@ what we get from FRED we will just remove those strings.
       (error "FRED API key not initialized. Call initialize-fred with api key as the argument or\
  create API_Key.txt containing key as quoted string in home directory"))
   (let* ((result (parse-xml-string 
-                  (http-request (concatenate 'string "http://api.stlouisfed.org/fred/" query-string)
+                  (http-request (concatenate 'string "https://api.stlouisfed.org/fred/" query-string)
                                 :parameters (acons "api_key" *fred-api-key* key-value-alist))))
          (first-obj (xml-form-tag result))
          (error-info  (and (listp first-obj)
