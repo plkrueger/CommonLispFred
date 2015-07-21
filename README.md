@@ -13,9 +13,44 @@ Requirements
 
 This has been tested using the latest development version of the Clozure Common Lisp distribution (CCL Version 1.10-dev-r16162-trunk  for DarwinX8664 as of this writing). Although I have attempted to make this compatible with other distributions, it is always possible that some problem might arise. If you find one, file a GIT ticket and I’ll attempt to resolve it.
 
-This package uses quicklisp to load both the s-xml and drakma open source packages. You must install quicklisp on your system before loading this code.
+This package is set up as a quicklisp project (courtesy of a contribution by Paul Nathan) and can be loaded via a quickload call: 
 
-Code can be loaded by requiring or loading the fred.lisp file. If your lisp release does not support “require” functionality, then you may be able to replace require calls with load calls with appropriate load paths specified.
+	(ql:quickload :fred)
+You must install quicklisp on your system before loading this code. It (automatically) uses the s-xml and drakma open source packages that are also quicklisp projects.
+
+Note: until this has been accepted as a quicklisp project you can download from the git repository and (assuming you have quicklisp installed) and do:
+
+? (push #p”<“path to directory where fred files have been downloaded>” asdf:*central-registry*)
+
+which on my system returns:
+
+(#P"/Users/paul/Lisp Stuff/MyLispCode/Economic Simulation/CommonLispFred/" #P"/Users/paul/quicklisp/quicklisp/")
+
+Then you can just use a quickload command to load the FRED code:
+
+? (ql:quickload :fred)
+
+which should return something like:
+
+To load "fred":
+
+Load 1 ASDF system:
+
+fred
+
+; Loading "fred"
+
+[package currency]................................
+
+[package hist-date]...............................
+
+[package fred]....................
+
+(:FRED)
+
+? (in-package :fred)
+
+etc.
 
 Developers must acquire a FRED® API key and provide it in one of three ways:
 	1.	Call initialize-fred with the key provided as a string argument, or
