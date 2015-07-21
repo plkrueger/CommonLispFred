@@ -3,7 +3,7 @@
 {\colortbl;\red255\green255\blue255;}
 {\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc0\levelnfcn0\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{decimal\}.}{\leveltext\leveltemplateid1\'02\'00.;}{\levelnumbers\'01;}\fi-360\li720\lin720 }{\listname ;}\listid1}}
 {\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}}
-\margl1440\margr1440\vieww12220\viewh8500\viewkind0
+\margl1440\margr1440\vieww15320\viewh10400\viewkind0
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 
 \f0\fs24 \cf0 This product uses the FRED\'ae API but is not endorsed or certified by the Federal Reserve Bank of St. Louis. \
@@ -12,17 +12,30 @@ at https://research.stlouisfed.org/legal.html. Also see the copyright notice wit
 \
 The files fred-package.lisp, fred-classes.lisp, and fred.lisp together implement a Common Lisp interface to the Federal Reserve Economic Data (FRED\'ae) API which is provided by the Federal Reserve Bank of St. Louis. In addition, this release includes hist-date.lisp which provides software to represent and manipulate historical dates as described later.\
 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 
-\b\fs28 Requirements
+\b\fs28 \cf0 Requirements
 \b0\fs24 \
 \
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
-\cf0 This has been tested using the latest development version of the Clozure Common Lisp distribution (CCL Version 1.10-dev-r16162-trunk  for DarwinX8664 as of this writing). Although I have attempted to make this compatible with other distributions, it is always possible that some problem might arise. If you find one, file a GIT ticket and I\'92ll attempt to resolve it.\
+This has been tested using the latest development version of the Clozure Common Lisp distribution (CCL Version 1.10-dev-r16162-trunk  for DarwinX8664 as of this writing). Although I have attempted to make this compatible with other distributions, it is always possible that some problem might arise. If you find one, file a GIT ticket and I\'92ll attempt to resolve it.\
 \
-This package uses quicklisp to load both the s-xml and drakma open source packages. You must install quicklisp on your system before loading this code.\
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
-\cf0 \
-Code can be loaded by requiring or loading the fred.lisp file. If your lisp release does not support \'93require\'94 functionality, then you may be able to replace require calls with load calls with appropriate load paths specified.\
+This package is set up as a quicklisp project (courtesy of a contribution by Paul Nathan) and can be loaded via a quickload call: \
+	(ql:quickload :fred)\
+You must install quicklisp on your system before loading this code. It (automatically) uses the s-xml and drakma open source packages that are also quicklisp projects.\
+\
+Note: until this has been accepted as a quicklisp project you can download from the git repository and (assuming you have quicklisp installed) and do:\
+? (push #p\'94<\'93path to directory where fred files have been downloaded>\'94 asdf:*central-registry*)\
+(#P"/Users/paul/Lisp Stuff/MyLispCode/Economic Simulation/CommonLispFred/" #P"/Users/paul/quicklisp/quicklisp/")\
+? (ql:quickload :fred)\
+To load "fred":\
+  Load 1 ASDF system:\
+    fred\
+; Loading "fred"\
+[package currency]................................\
+[package hist-date]...............................\
+[package fred]....................\
+(:FRED)\
+? (in-package :fred)\
 \
 Developers must acquire a FRED\'ae API key and provide it in one of three ways:\
 \pard\tx220\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\li720\fi-720\pardirnatural
@@ -37,15 +50,15 @@ The main FRED\'ae access page is http://api.stlouisfed.org/datatools.html and fr
 \
 This code distribution implements two distinct interface API\'92s: a direct counterpart of the FRED\'ae API and an object-oriented interface that largely hides the FRED\'ae API. It transparently performs queries as needed to instantiate information accessed from slots of a set of classes that have been defined to hold FRED\'ae data.\
 \
-
-\b\fs28 Direct FRED\'ae API\
-
-\b0\fs24 \
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
-\cf0 This code contains exact counterparts of the FRED\'ae API which can be directly called.\
+
+\b\fs28 \cf0 Direct FRED\'ae API\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\b0\fs24 \cf0 \
+This code contains exact counterparts of the FRED\'ae API which can be directly called.\
 \
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
-\cf0 Any of the following functions may be used to directly access the FRED\'ae API:\
+Any of the following functions may be used to directly access the FRED\'ae API:\
 \
 Category Functions\
    fred-category\
@@ -142,12 +155,11 @@ Even though some types of queries return id\'92s that are numeric, all id\'92s a
 \
 Various sorts of errors are detected which result in calls to the error function (which throws an exception). Any error returned from a FRED\'ae query will also result in such an exception.\
 \
+Not all of the functionality provided by the direct low-level FRED\'ae API is available via the object-oriented API. In particular, FRED\'ae queries provide the ability to specify the format of the returned data. This software always requests XML results, which are first parsed into lisp list structures from which the data values that are actually returned from query calls are extracted. All other query parameters provided by the FRED\'ae API have lisp keyword argument counterparts in the direct API.\
+\
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
-\cf0 Not all of the functionality provided by the direct low-level FRED\'ae API is available via the object-oriented API. In particular, FRED\'ae queries provide the ability to specify the format of the returned data. This software always requests XML results, which are first parsed into lisp list structures from which the data values that are actually returned from query calls are extracted. All other query parameters provided by the FRED\'ae API have lisp keyword argument counterparts in the direct API.\
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
-\cf0 \
 
-\b\fs28 Object-Oriented API\
+\b\fs28 \cf0 Object-Oriented API\
 \
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 
