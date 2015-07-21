@@ -6,19 +6,19 @@ The MIT license.
 
 Copyright (c) 2014 Paul L. Krueger
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
-and associated documentation files (the "Software"), to deal in the Software without restriction, 
-including without limitation the rights to use, copy, modify, merge, publish, distribute, 
-sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is 
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+and associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all copies or substantial 
+The above copyright notice and this permission notice shall be included in all copies or substantial
 portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT 
-LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 |#
@@ -355,13 +355,13 @@ This file provides world currency data and access mechanisms.
           (setf wrds (rest wrds))))))
 
 (defun match-words-to-currency (wrd-list &optional (parse-hash *base-parse-table*))
-  ;; return two values: 
+  ;; return two values:
   ;;   the currency code corresponding to the first N words of wrd-list if one can be found
   ;;   the number of words used to traverse the parse tree to a valid currency (i.e. N).
   (let ((entry (gethash (first wrd-list) parse-hash)))
     (typecase entry
       (hash-table
-       (multiple-value-bind (curr-found wrds-used) 
+       (multiple-value-bind (curr-found wrds-used)
                             (match-words-to-currency (rest wrd-list) entry)
          (if curr-found
              (values curr-found (1+ wrds-used)))))
@@ -397,11 +397,11 @@ This file provides world currency data and access mechanisms.
 (defun unescaped-delim-pos (str delim-string &optional (start 0))
   ;; Find next position of a delimiter unless previous character was a "\"
   (do* ((last-pos (1- (length str)))
-        (pos start 
+        (pos start
              (1+ pos))
-        (last-escape-p nil 
+        (last-escape-p nil
                        (char= ch #\\))
-        (ch (elt str pos) 
+        (ch (elt str pos)
             (elt str pos))
         (delim-p (and (find ch delim-string :test #'char=) (not last-escape-p))
                  (and (find ch delim-string :test #'char=) (not last-escape-p))))
@@ -414,21 +414,21 @@ This file provides world currency data and access mechanisms.
   (when (string str)
     (do* ((words nil)
           (s (string str))
-          (strt 0 
+          (strt 0
                 (and p (< p (1- (length s))) (1+ p)))
           (p (unescaped-delim-pos s delim-string)
              (and strt (unescaped-delim-pos s delim-string strt)))
           (delim-found (and p (elt s p))
                        (and p (elt s p)))
           (wrd (remove #\\
-                       (when strt 
-                         (if p 
+                       (when strt
+                         (if p
                              (subseq s strt p)
                              (subseq s strt)))
                        :test #'char=)
                (remove #\\
-                       (when strt 
-                         (if p 
+                       (when strt
+                         (if p
                              (subseq s strt p)
                              (subseq s strt)))
                        :test #'char=)))
@@ -439,6 +439,3 @@ This file provides world currency data and access mechanisms.
         (push (string (elt s p)) words)))))
 
 (populate-hash-tables)
-
-
-(provide :currency)
